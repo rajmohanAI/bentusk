@@ -1,0 +1,313 @@
+package com.bentusk.app.feature.export
+
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bentusk.app.R
+import com.bentusk.app.core.image.ExportedTile
+import com.bentusk.app.core.storage.ShareHelper
+import com.bentusk.app.ui.components.Thumbnail
+import com.bentusk.app.ui.theme.NumericStyle
+import com.bentusk.engine.InstagramSpec
+
+@Composable
+fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.onPermissionResult(it)
+    }
+    LaunchedEffect(state.needsPermission) {
+        if (state.needsPermission) permission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+    var showReview by remember { mutableStateOf(false) }
+    // Grid tiles are posted one at a time; remember which ones the user has already sent.
+    var posted by remember { mutableStateOf(setOf<Int>()) }
+    val instagramInstalled = remember { ShareHelper.isInstagramInstalled(context) }
+    LaunchedEffect(state.askForReview) { if (state.askForReview) showReview = true }
+
+    Scaffold { padding ->
+        Column(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            when {
+                state.failed -> Failed(onRetry = viewModel::retry, onDone = onDone)
+                !state.finished -> Working(state.done, state.total)
+                else -> {
+                    Header(state)
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        when (state.kind) {
+                            ExportKind.Grid -> GridResult(state.tiles, posted) { item ->
+                                posted = posted + item.tile.postOrder
+                                ShareHelper.shareImages(
+                                    context, listOf(item.uri), state.format.mimeType, true, context.getString(R.string.share),
+                                )
+                            }
+                            ExportKind.Carousel -> CarouselResult(state.tiles)
+                            ExportKind.Cover -> state.coverUri?.let { CoverResult(it) }
+                        }
+                    }
+                    Actions(
+                        onShareInstagram = {
+                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, true, context.getString(R.string.share))
+                        },
+                        onShare = {
+                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, false, context.getString(R.string.share))
+                        },
+                        onShareApp = {
+                            ShareHelper.shareText(
+                                context,
+                                context.getString(R.string.share_app_text, playStoreUrl(context.packageName)),
+                                context.getString(R.string.share),
+                            )
+                        },
+                        onDone = onDone,
+                        // A grid is posted tile by tile from the preview above, not as one carousel.
+                        showInstagram = state.kind != ExportKind.Grid && instagramInstalled,
+                    )
+                }
+            }
+        }
+    }
+
+    if (showReview) {
+        AlertDialog(
+            onDismissRequest = { showReview = false },
+            title = { Text(stringResource(R.string.review_title)) },
+            text = { Text(stringResource(R.string.review_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showReview = false
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(playStoreUrl(context.packageName)))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }) { Text(stringResource(R.string.review_yes)) }
+            },
+            dismissButton = { TextButton(onClick = { showReview = false }) { Text(stringResource(R.string.not_now)) } },
+        )
+    }
+}
+
+private fun playStoreUrl(packageName: String) = "https://play.google.com/store/apps/details?id=$packageName"
+
+@Composable
+private fun Working(done: Int, total: Int) {
+    Column(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                progress = { if (total == 0) 0f else done / total.toFloat() },
+                modifier = Modifier.size(96.dp),
+                strokeWidth = 6.dp,
+            )
+            Text("$done/$total", style = MaterialTheme.typography.titleMedium.merge(NumericStyle))
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(stringResource(R.string.exporting), style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(R.string.exporting_detail),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun Failed(onRetry: () -> Unit, onDone: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.Rounded.ErrorOutline, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.height(12.dp))
+        Text(stringResource(R.string.export_failed), textAlign = TextAlign.Center)
+        Spacer(Modifier.height(20.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onDone) { Text(stringResource(R.string.close)) }
+            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+        }
+    }
+}
+
+@Composable
+private fun Header(state: ExportUiState) {
+    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Rounded.CheckCircle, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.saved_to_gallery, state.uris.size),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        val hint = when (state.kind) {
+            ExportKind.Grid -> R.string.grid_post_hint
+            ExportKind.Carousel -> R.string.carousel_post_hint
+            ExportKind.Cover -> R.string.cover_post_hint
+        }
+        Text(
+            stringResource(hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+/** Tiles laid out as they will appear on the profile, each labelled with its posting step. */
+@Composable
+private fun GridResult(tiles: List<ExportedTile>, posted: Set<Int>, onPost: (ExportedTile) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(InstagramSpec.GRID_COLUMNS),
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        items(tiles.sortedBy { it.tile.index }, key = { it.tile.index }) { item ->
+            val ratio = tiles.first().tile.rect.let { it.width.toFloat() / it.height }
+            val next = (1..tiles.size).firstOrNull { it !in posted }
+            Box(Modifier.aspectRatio(ratio).clickable { onPost(item) }) {
+                Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
+                if (item.tile.postOrder in posted) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.CheckCircle, null, tint = Color.White)
+                    }
+                }
+                StepBadge(item.tile.postOrder, highlight = item.tile.postOrder == next)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CarouselResult(tiles: List<ExportedTile>) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items(tiles.sortedBy { it.tile.postOrder }, key = { it.tile.index }) { item ->
+            val ratio = item.tile.rect.let { it.width.toFloat() / it.height }
+            Box(Modifier.height(260.dp).aspectRatio(ratio).clip(RoundedCornerShape(6.dp))) {
+                Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
+                StepBadge(item.tile.postOrder, highlight = false)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoverResult(uri: Uri) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Thumbnail(uri, null, Modifier.size(180.dp).clip(CircleShape))
+    }
+}
+
+@Composable
+private fun StepBadge(step: Int, highlight: Boolean) {
+    Box(
+        Modifier
+            .padding(6.dp)
+            .size(26.dp)
+            .clip(CircleShape)
+            .background(if (highlight) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.6f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            step.toString(),
+            style = MaterialTheme.typography.labelMedium.merge(NumericStyle),
+            color = if (highlight) MaterialTheme.colorScheme.onPrimary else Color.White,
+        )
+    }
+}
+
+@Composable
+private fun Actions(
+    onShareInstagram: () -> Unit,
+    onShare: () -> Unit,
+    onShareApp: () -> Unit,
+    onDone: () -> Unit,
+    showInstagram: Boolean,
+) {
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (showInstagram) {
+            Button(onClick = onShareInstagram, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                Text(stringResource(R.string.open_in_instagram))
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onShare, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Rounded.IosShare, null)
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.share))
+            }
+            OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.done)) }
+        }
+        TextButton(onClick = onShareApp, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(stringResource(R.string.share_app))
+        }
+    }
+}
