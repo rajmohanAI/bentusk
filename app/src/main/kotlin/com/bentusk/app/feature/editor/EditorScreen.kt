@@ -241,6 +241,7 @@ private enum class PanelTab(val title: Int) {
     Output(R.string.tab_output),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ControlPanel(state: EditorState, viewModel: EditorViewModel) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
