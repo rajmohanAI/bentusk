@@ -178,4 +178,38 @@
     <string name="tool_slides">Slides</string>
     <string name="write_again">Write again</string>
     <string name="write_with_ai">Write with AI</string>
+
+    <!-- Safe zones -->
+    <string name="safe_zone_icons">Covered by icons</string>
+    <string name="safe_zone_grid">Grid crop</string>
+    <string name="safe_zone_square">Square crop</string>
+    <string name="toggle_safe_zones">Show safe zones</string>
+    <string name="tool_safe_zones">Safe zones</string>
+
+    <!-- Stickers -->
+    <string name="tool_stickers">Stickers</string>
+    <string name="stickers_nudges">Swipe nudges</string>
+    <string name="stickers_nudges_hint">Added to the slide in view. Arrows and lines cross into the next slide so people keep swiping.</string>
+    <string name="stickers_nudges_hint_grid">Added to the tile in view. Seam stickers run onto the tile to its right.</string>
+    <string name="stickers_calls">Calls to action</string>
+    <string name="sticker_arrow">→</string>
+    <string name="sticker_keep_swiping">Keep swiping »</string>
+    <string name="sticker_swipe">Swipe →</string>
+    <string name="sticker_wait_for_it">Wait for it…</string>
+    <string name="sticker_save">Save this for later</string>
+    <string name="sticker_share">Share with a friend</string>
+    <string name="sticker_follow">Follow for more</string>
+    <string name="sticker_comment">Tell me in the comments</string>
+    <string name="sticker_link_in_bio">Link in bio</string>
+
+    <!-- Planner: pins and views -->
+    <string name="planner_pin_limit">Instagram lets you pin up to %1$d posts</string>
+    <string name="planner_view_grid">Grid view 3:4</string>
+    <string name="planner_view_square">Square view 1:1</string>
+    <string name="planner_pin">Pin to top</string>
+    <string name="planner_unpin">Unpin</string>
+
+    <!-- Caption -->
+    <string name="keep_line_breaks">Keep line breaks</string>
+    <string name="keep_line_breaks_hint">Adds an invisible character to blank lines so Instagram keeps your paragraphs</string>
 </resources>

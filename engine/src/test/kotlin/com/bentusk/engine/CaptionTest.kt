@@ -35,4 +35,13 @@ class CaptionTest {
             assertEquals(topic.tags.size, topic.tags.distinct().size)
         }
     }
+
+    @Test
+    fun `keeps paragraph breaks with an invisible line`() {
+        val text = "\n\nHook line   \n\nSecond paragraph\r\n\n\nThird\n\n"
+        val b = Caption.BLANK_LINE
+        assertEquals("Hook line\n$b\nSecond paragraph\n$b\n$b\nThird", Caption.keepLineBreaks(text))
+        assertEquals("One line", Caption.keepLineBreaks("One line"))
+        assertEquals("", Caption.keepLineBreaks(" \n \n"))
+    }
 }

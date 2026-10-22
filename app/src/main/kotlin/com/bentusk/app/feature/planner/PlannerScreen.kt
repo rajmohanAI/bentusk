@@ -21,10 +21,12 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -57,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bentusk.app.R
 import com.bentusk.app.ui.components.ChoiceRow
 import com.bentusk.app.ui.components.Thumbnail
+import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.PostRatio
 import sh.calvin.reorderable.ReorderableItem
@@ -83,6 +86,13 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
         if (locked) {
             viewModel.consumeLocked()
             if (snackbar.showSnackbar(lockedMessage, goPro, withDismissAction = true) == SnackbarResult.ActionPerformed) onUpgrade()
+        }
+    }
+    val pinLimitMessage = stringResource(R.string.planner_pin_limit, InstagramSpec.MAX_PINNED)
+    LaunchedEffect(state.pinLimitHit) {
+        if (state.pinLimitHit) {
+            viewModel.consumePinLimit()
+            snackbar.showSnackbar(pinLimitMessage)
         }
     }
     LaunchedEffect(state.failedImports) {
@@ -129,6 +139,13 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
                 onSelect = { id -> if (id == NEW_PLAN) viewModel.newPlan(newPlanName) else viewModel.select(id) },
                 modifier = Modifier.padding(vertical = 8.dp),
             )
+            ChoiceRow(
+                options = listOf(false, true),
+                selected = state.squarePreview,
+                label = { square -> stringResource(if (square) R.string.planner_view_square else R.string.planner_view_grid) },
+                onSelect = viewModel::setSquarePreview,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
             if (state.adding) LinearProgressIndicator(Modifier.fillMaxWidth())
 
             if (state.items.isEmpty() && !state.adding) {
@@ -139,7 +156,7 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
                     viewModel.move(from.index, to.index)
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 }
-                val ratio = PostRatio.GridDefault.size.aspect.toFloat()
+                val ratio = if (state.squarePreview) 1f else PostRatio.GridDefault.size.aspect.toFloat()
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(InstagramSpec.GRID_COLUMNS),
                     state = gridState,
@@ -163,6 +180,20 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
                                     ),
                             ) {
                                 Thumbnail(item.thumbPath, null, Modifier.fillMaxSize())
+                                IconButton(
+                                    onClick = { viewModel.togglePin(item) },
+                                    modifier = Modifier.align(Alignment.TopStart).size(32.dp),
+                                ) {
+                                    Icon(
+                                        if (item.pinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
+                                        stringResource(if (item.pinned) R.string.planner_unpin else R.string.planner_pin),
+                                        tint = if (item.pinned) BentuskColors.Gold else Color.White,
+                                        modifier = Modifier
+                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                            .padding(3.dp)
+                                            .size(14.dp),
+                                    )
+                                }
                                 IconButton(
                                     onClick = { viewModel.remove(item) },
                                     modifier = Modifier.align(Alignment.TopEnd).size(32.dp),

@@ -70,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bentusk.app.R
 import com.bentusk.app.core.image.EmptySlots
+import com.bentusk.app.ui.components.SafeZoneLegend
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.app.ui.theme.NumericStyle
 import com.bentusk.engine.InstagramSpec
@@ -165,6 +166,7 @@ fun StudioScreen(
                         photos = photos,
                         selected = state.selected,
                         showGuides = state.showGuides,
+                        showSafeZones = state.showSafeZones,
                         gestures = gestures,
                         modifier = Modifier
                             .padding(16.dp)
@@ -172,6 +174,12 @@ fun StudioScreen(
                     )
                 }
                 if (state.busy) CircularProgressIndicator(Modifier.align(Alignment.Center))
+                if (state.showSafeZones && state.ready) {
+                    SafeZoneLegend(
+                        Modifier.align(Alignment.TopCenter).padding(top = 2.dp),
+                        textColor = Color.White.copy(alpha = 0.8f),
+                    )
+                }
             }
             Surface(color = StudioColors.Panel, contentColor = Color.White) {
                 Column(Modifier.navigationBarsPadding()) {
@@ -197,6 +205,8 @@ fun StudioScreen(
                                 MainToolbar(
                                     panel = state.panel,
                                     kind = state.design.kind,
+                                    safeZones = state.showSafeZones,
+                                    onSafeZones = viewModel::toggleSafeZones,
                                     onPhotos = { pickMany.launch(imagesOnly) },
                                     onText = viewModel::addText,
                                     onPanel = viewModel::openPanel,
@@ -328,6 +338,7 @@ private fun SlidePager(
                     photos = photos,
                     region = layout.tiles[page.coerceAtMost(layout.count - 1)].rect,
                     selected = state.selected,
+                    showSafeZones = state.showSafeZones,
                     gestures = gestures,
                     modifier = Modifier
                         .width(pageWidth)

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CenterFocusStrong
+import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.GridOff
@@ -31,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
@@ -65,6 +67,7 @@ import com.bentusk.app.R
 import com.bentusk.app.core.image.Backdrop
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.ui.components.ChoiceRow
+import com.bentusk.app.ui.components.SafeZoneLegend
 import com.bentusk.app.ui.components.SectionLabel
 import com.bentusk.app.ui.components.Swatch
 import com.bentusk.app.ui.theme.NumericStyle
@@ -118,6 +121,13 @@ fun EditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = viewModel::toggleSafeZones) {
+                        Icon(
+                            Icons.Rounded.CropFree,
+                            contentDescription = stringResource(R.string.toggle_safe_zones),
+                            tint = if (state.showSafeZones) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        )
+                    }
                     IconButton(onClick = viewModel::toggleGuides) {
                         Icon(
                             if (state.showGuides) Icons.Rounded.GridOn else Icons.Rounded.GridOff,
@@ -172,6 +182,7 @@ fun EditorScreen(
                     framing = state.framing,
                     frame = state.frame.frame,
                     showGuides = state.showGuides,
+                    showSafeZones = state.showSafeZones,
                     onGesture = viewModel::onGesture,
                     modifier = Modifier
                         .padding(16.dp)
@@ -216,6 +227,7 @@ private fun CarouselPreview(state: EditorState, preview: PreviewPhoto, viewModel
                     framing = state.framing,
                     frame = state.frame.frame,
                     showGuides = false,
+                    showSafeZones = state.showSafeZones,
                     region = tile.rect,
                     gestureMode = GestureMode.MultiTouch,
                     onGesture = viewModel::onGesture,
@@ -225,6 +237,7 @@ private fun CarouselPreview(state: EditorState, preview: PreviewPhoto, viewModel
                 )
             }
         }
+        if (state.showSafeZones) SafeZoneLegend(Modifier.padding(top = 4.dp))
         Text(
             "${pager.currentPage + 1} / ${layout.count}",
             style = MaterialTheme.typography.labelMedium.merge(NumericStyle),

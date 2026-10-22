@@ -22,6 +22,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,6 +54,8 @@ fun CaptionComposer(
     onToggleHashtag: (String) -> Unit,
     onCopy: () -> Unit,
     onWriteWithAi: () -> Unit,
+    keepLineBreaks: Boolean,
+    onKeepLineBreaks: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tags = Caption.hashtags(caption)
@@ -103,6 +106,24 @@ fun CaptionComposer(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
         )
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { onKeepLineBreaks(!keepLineBreaks) }
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.keep_line_breaks), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    stringResource(R.string.keep_line_breaks_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = keepLineBreaks, onCheckedChange = onKeepLineBreaks)
+        }
 
         var topic by rememberSaveable { mutableStateOf(HashtagSets.Topics.first().id) }
         Row(verticalAlignment = Alignment.CenterVertically) {

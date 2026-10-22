@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CenterFocusStrong
+import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.FlipToBack
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Rotate90DegreesCw
 import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.ViewModule
 import androidx.compose.material.icons.rounded.Wallpaper
@@ -68,6 +70,7 @@ import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
+import com.bentusk.engine.StickerPlacement
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextAlign
 import com.bentusk.engine.TextFont
@@ -100,6 +103,8 @@ object StudioPalette {
 fun MainToolbar(
     panel: StudioPanel,
     kind: TemplateKind,
+    safeZones: Boolean,
+    onSafeZones: () -> Unit,
     onPhotos: () -> Unit,
     onText: () -> Unit,
     onPanel: (StudioPanel) -> Unit,
@@ -113,6 +118,9 @@ fun MainToolbar(
     ) {
         ToolButton(Icons.Rounded.AddPhotoAlternate, stringResource(R.string.tool_photos), onClick = onPhotos)
         ToolButton(Icons.Rounded.TextFields, stringResource(R.string.tab_text), onClick = onText)
+        ToolButton(Icons.Rounded.TouchApp, stringResource(R.string.tool_stickers), panel == StudioPanel.Stickers) {
+            onPanel(StudioPanel.Stickers)
+        }
         ToolButton(
             if (kind == TemplateKind.Carousel) Icons.Rounded.ViewCarousel else Icons.Rounded.ViewModule,
             stringResource(if (kind == TemplateKind.Carousel) R.string.tool_slides else R.string.tool_rows),
@@ -123,6 +131,7 @@ fun MainToolbar(
         ToolButton(Icons.Rounded.Wallpaper, stringResource(R.string.tool_backgrounds), panel == StudioPanel.Background) {
             onPanel(StudioPanel.Background)
         }
+        ToolButton(Icons.Rounded.CropFree, stringResource(R.string.tool_safe_zones), safeZones, onSafeZones)
     }
 }
 
@@ -164,7 +173,72 @@ fun PanelContent(state: StudioState, viewModel: StudioViewModel) {
                 SwatchRow(StudioPalette.Gradients, state.design.fill, viewModel::setFill)
             }
             StudioPanel.Layers -> LayerList(state, viewModel)
+            StudioPanel.Stickers -> StickerPanel(state, viewModel)
             else -> Unit
+        }
+    }
+}
+
+/** A ready-made sticker: where it goes and the words it starts with. */
+private data class StickerPreset(val placement: StickerPlacement, val text: Int)
+
+private val Nudges = listOf(
+    StickerPreset(StickerPlacement.SeamArrow, R.string.sticker_arrow),
+    StickerPreset(StickerPlacement.SeamText, R.string.sticker_keep_swiping),
+    StickerPreset(StickerPlacement.CornerPill, R.string.sticker_swipe),
+    StickerPreset(StickerPlacement.SeamText, R.string.sticker_wait_for_it),
+)
+
+private val Calls = listOf(
+    StickerPreset(StickerPlacement.Banner, R.string.sticker_save),
+    StickerPreset(StickerPlacement.Banner, R.string.sticker_share),
+    StickerPreset(StickerPlacement.Banner, R.string.sticker_follow),
+    StickerPreset(StickerPlacement.Banner, R.string.sticker_comment),
+    StickerPreset(StickerPlacement.Banner, R.string.sticker_link_in_bio),
+)
+
+/** Swipe nudges for the seams and calls to action for the closing slide, each added as editable text. */
+@Composable
+private fun StickerPanel(state: StudioState, viewModel: StudioViewModel) {
+    val carousel = state.design.kind == TemplateKind.Carousel
+    StickerSection(stringResource(R.string.stickers_nudges), Nudges, viewModel)
+    Text(
+        stringResource(if (carousel) R.string.stickers_nudges_hint else R.string.stickers_nudges_hint_grid),
+        color = Color.White.copy(alpha = 0.6f),
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+    Spacer(Modifier.size(8.dp))
+    StickerSection(stringResource(R.string.stickers_calls), Calls, viewModel)
+}
+
+@Composable
+private fun StickerSection(title: String, presets: List<StickerPreset>, viewModel: StudioViewModel) {
+    Text(
+        title,
+        color = Color.White.copy(alpha = 0.85f),
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+    Row(
+        Modifier
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (preset in presets) {
+            val text = stringResource(preset.text)
+            Text(
+                text,
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(StudioColors.Chip)
+                    .clickable { viewModel.addSticker(preset.placement, text) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }

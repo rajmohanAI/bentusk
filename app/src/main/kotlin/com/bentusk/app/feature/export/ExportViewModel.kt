@@ -46,6 +46,7 @@ data class ExportUiState(
     val caption: String = "",
     /** True once the user has agreed to hand posts over to the Instagram app. */
     val instagramConsent: Boolean = false,
+    val keepLineBreaks: Boolean = true,
     val ai: AiCaptionState = AiCaptionState(),
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
@@ -54,6 +55,9 @@ data class ExportUiState(
     val hasCaption: Boolean get() = kind != ExportKind.Cover
 
     val hashtags: List<String> get() = Caption.hashtags(caption)
+
+    /** The caption as it goes on the clipboard for Instagram. */
+    val captionToPost: String get() = if (keepLineBreaks) Caption.keepLineBreaks(caption) else caption.trim()
 }
 
 /** The "Write with AI" sheet: the user's choices and the captions written for them. */
@@ -88,7 +92,9 @@ class ExportViewModel @Inject constructor(
     init {
         _state.update { it.copy(caption = session.caption) }
         viewModelScope.launch {
-            settings.settings.collect { s -> _state.update { it.copy(instagramConsent = s.instagramConsent) } }
+            settings.settings.collect { s ->
+                _state.update { it.copy(instagramConsent = s.instagramConsent, keepLineBreaks = s.keepLineBreaks) }
+            }
         }
         if (saver.needsLegacyPermission) _state.update { it.copy(needsPermission = true) } else start()
     }
@@ -162,6 +168,10 @@ class ExportViewModel @Inject constructor(
     /** The post is finished; the next one starts with an empty caption. */
     fun clearCaption() {
         session.caption = ""
+    }
+
+    fun setKeepLineBreaks(on: Boolean) {
+        viewModelScope.launch { settings.setKeepLineBreaks(on) }
     }
 
     fun toggleHashtag(tag: String) = setCaption(Caption.toggleHashtag(_state.value.caption, tag))
