@@ -14,6 +14,8 @@ enum class ProFeature {
     PremiumCovers,
     /** More than one saved grid plan. */
     MultiplePlans,
+    /** Templates marked premium in the catalogue. */
+    PremiumTemplates,
     /** No ads anywhere. */
     AdFree,
 }

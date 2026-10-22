@@ -59,6 +59,7 @@ fun HomeScreen(
     onOpenEditor: (SliceMode, Uri) -> Unit,
     onOpenPlanner: () -> Unit,
     onOpenCovers: () -> Unit,
+    onOpenTemplates: () -> Unit,
     onOpenPro: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -105,6 +106,14 @@ fun HomeScreen(
                 colors = listOf(Color(0xFF3B2F5C), Color(0xFF8C5E7A)),
                 art = { drawCarouselArt() },
                 onClick = { pickCarousel.launch(imagesOnly) },
+            )
+            Spacer(Modifier.height(12.dp))
+            ToolCard(
+                title = stringResource(R.string.tool_templates),
+                body = stringResource(R.string.tool_templates_body),
+                colors = listOf(Color(0xFF5C2F3B), Color(0xFFB0705E)),
+                art = { drawTemplatesArt() },
+                onClick = onOpenTemplates,
             )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -277,4 +286,21 @@ private fun DrawScope.drawCoversArt() {
         drawCircle(Color.White.copy(alpha = 0.6f), radius = r + 6f, center = Offset(cx, size.height / 2),
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
     }
+}
+
+/** Three slides with photos of different sizes, one of them running across a seam. */
+private fun DrawScope.drawTemplatesArt() {
+    val n = 3
+    val gap = size.width * 0.02f
+    val w = (size.width - gap * (n - 1)) / n
+    val h = minOf(size.height, w * 1.25f)
+    val top = (size.height - h) / 2
+    for (i in 0 until n) {
+        drawRoundRect(ArtSoft, Offset(i * (w + gap), top), Size(w, h), CornerRadius(10f))
+    }
+    val m = w * 0.08f
+    drawRoundRect(ArtLight, Offset(m, top + m), Size(w * 2 + gap - m * 2, h * 0.55f), CornerRadius(6f))
+    drawRoundRect(BentuskColors.Gold, Offset(m, top + h * 0.55f + m * 2), Size(w - m * 2, h * 0.45f - m * 3), CornerRadius(6f))
+    drawRoundRect(ArtLight, Offset(w + gap + m, top + h * 0.55f + m * 2), Size(w - m * 2, h * 0.45f - m * 3), CornerRadius(6f))
+    drawRoundRect(ArtLight, Offset((w + gap) * 2 + m, top + m), Size(w - m * 2, h - m * 2), CornerRadius(6f))
 }

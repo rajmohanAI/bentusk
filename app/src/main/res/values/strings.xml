@@ -98,4 +98,37 @@
         <item quantity="one">%1$d photo could not be added.</item>
         <item quantity="other">%1$d photos could not be added.</item>
     </plurals>
+    <string name="tool_templates">Templates</string>
+    <string name="tool_templates_body">Ready-made carousel and grid layouts. Pick a design, add your photos, post.</string>
+    <string name="tab_carousel">Carousel</string>
+    <string name="tab_grid">Grid</string>
+    <string name="templates_carousel_hint">Photos can run across slides, so the carousel flows when swiped.</string>
+    <string name="templates_grid_hint">Designs for 3-column profile grids. Each tile is posted on its own.</string>
+    <string name="template_summary_carousel">%1$d photos · %2$d slides</string>
+    <string name="template_summary_grid">%1$d photos · %2$d tiles</string>
+    <string name="locked_short">Locked</string>
+    <string name="tab_photo">Photo</string>
+    <string name="tab_text">Text</string>
+    <string name="tab_style">Style</string>
+    <string name="template_tap_hint">Tap a photo to adjust or replace it</string>
+    <string name="template_empty_slot">Photo %1$d of %2$d is empty</string>
+    <string name="template_slot">Photo %1$d of %2$d</string>
+    <string name="add_photo">Add photo</string>
+    <string name="replace_photo">Replace</string>
+    <string name="template_gesture_hint">Drag to move and pinch to zoom. On a slide, use two fingers.</string>
+    <string name="template_text_label">Text %1$d</string>
+    <string name="pro_feature_templates">All premium templates</string>
+    <string name="ready_to_post">Ready to post</string>
+    <string name="caption">Caption</string>
+    <string name="caption_hint">Write a caption. The first line is what people see first.</string>
+    <string name="caption_preview_hint">About %1$d characters show before “more”</string>
+    <string name="caption_counts">%1$d/%2$d · #%3$d/%4$d</string>
+    <string name="hashtag_ideas">Hashtag ideas</string>
+    <string name="copy_caption">Copy</string>
+    <string name="hashtag_limit_note">Instagram allows up to %1$d hashtags per post.</string>
+    <string name="caption_copied">Caption copied. In Instagram, long-press the caption box and paste.</string>
+    <string name="post_to_instagram">Post to Instagram</string>
+    <string name="instagram_consent_title">Post with Instagram?</string>
+    <string name="instagram_consent_body">Bentusk will open the Instagram app with your images and copy your caption, so you can paste it. Instagram posts from the account signed in on this phone. Bentusk never sees your Instagram login.</string>
+    <string name="instagram_consent_allow">Allow</string>
 </resources>

@@ -3,6 +3,7 @@ package com.bentusk.app.feature.export
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -22,12 +23,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -80,6 +80,20 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     val instagramInstalled = remember { ShareHelper.isInstagramInstalled(context) }
     LaunchedEffect(state.askForReview) { if (state.askForReview) showReview = true }
 
+    var consentFor by remember { mutableStateOf<List<Uri>?>(null) }
+    val captionCopied = stringResource(R.string.caption_copied)
+    // Instagram cannot take a caption through a share intent, so it goes on the clipboard for a long-press paste.
+    fun post(uris: List<Uri>) {
+        if (state.caption.isNotBlank()) {
+            ShareHelper.copyText(context, context.getString(R.string.caption), state.caption)
+            Toast.makeText(context, captionCopied, Toast.LENGTH_LONG).show()
+        }
+        ShareHelper.shareImages(context, uris, state.format.mimeType, true, context.getString(R.string.share))
+    }
+    fun requestPost(uris: List<Uri>) {
+        if (state.instagramConsent) post(uris) else consentFor = uris
+    }
+
     Scaffold { padding ->
         Column(
             Modifier
@@ -92,23 +106,37 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 state.failed -> Failed(onRetry = viewModel::retry, onDone = onDone)
                 !state.finished -> Working(state.done, state.total)
                 else -> {
-                    Header(state)
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Header(state)
                         when (state.kind) {
                             ExportKind.Grid -> GridResult(state.tiles, posted) { item ->
                                 posted = posted + item.tile.postOrder
-                                ShareHelper.shareImages(
-                                    context, listOf(item.uri), state.format.mimeType, true, context.getString(R.string.share),
-                                )
+                                requestPost(listOf(item.uri))
                             }
                             ExportKind.Carousel -> CarouselResult(state.tiles)
                             ExportKind.Cover -> state.coverUri?.let { CoverResult(it) }
                         }
+                        if (state.hasCaption) {
+                            Spacer(Modifier.height(20.dp))
+                            CaptionComposer(
+                                caption = state.caption,
+                                onCaptionChange = viewModel::setCaption,
+                                onToggleHashtag = viewModel::toggleHashtag,
+                                onCopy = {
+                                    ShareHelper.copyText(context, context.getString(R.string.caption), state.caption)
+                                    Toast.makeText(context, captionCopied, Toast.LENGTH_SHORT).show()
+                                },
+                            )
+                        }
                     }
                     Actions(
-                        onShareInstagram = {
-                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, true, context.getString(R.string.share))
-                        },
+                        onShareInstagram = { requestPost(state.uris) },
                         onShare = {
                             ShareHelper.shareImages(context, state.uris, state.format.mimeType, false, context.getString(R.string.share))
                         },
@@ -119,13 +147,32 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                 context.getString(R.string.share),
                             )
                         },
-                        onDone = onDone,
+                        onDone = {
+                            viewModel.clearCaption()
+                            onDone()
+                        },
                         // A grid is posted tile by tile from the preview above, not as one carousel.
                         showInstagram = state.kind != ExportKind.Grid && instagramInstalled,
                     )
                 }
             }
         }
+    }
+
+    consentFor?.let { uris ->
+        AlertDialog(
+            onDismissRequest = { consentFor = null },
+            title = { Text(stringResource(R.string.instagram_consent_title)) },
+            text = { Text(stringResource(R.string.instagram_consent_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    consentFor = null
+                    viewModel.grantInstagramConsent()
+                    post(uris)
+                }) { Text(stringResource(R.string.instagram_consent_allow)) }
+            },
+            dismissButton = { TextButton(onClick = { consentFor = null }) { Text(stringResource(R.string.not_now)) } },
+        )
     }
 
     if (showReview) {
@@ -198,9 +245,16 @@ private fun Header(state: ExportUiState) {
         Icon(Icons.Rounded.CheckCircle, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(R.string.saved_to_gallery, state.uris.size),
+            if (state.hasCaption) stringResource(R.string.ready_to_post) else stringResource(R.string.saved_to_gallery, state.uris.size),
             style = MaterialTheme.typography.headlineSmall,
         )
+        if (state.hasCaption) {
+            Text(
+                stringResource(R.string.saved_to_gallery, state.uris.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
         val hint = when (state.kind) {
             ExportKind.Grid -> R.string.grid_post_hint
             ExportKind.Carousel -> R.string.carousel_post_hint
@@ -219,23 +273,22 @@ private fun Header(state: ExportUiState) {
 /** Tiles laid out as they will appear on the profile, each labelled with its posting step. */
 @Composable
 private fun GridResult(tiles: List<ExportedTile>, posted: Set<Int>, onPost: (ExportedTile) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(InstagramSpec.GRID_COLUMNS),
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        items(tiles.sortedBy { it.tile.index }, key = { it.tile.index }) { item ->
-            val ratio = tiles.first().tile.rect.let { it.width.toFloat() / it.height }
-            val next = (1..tiles.size).firstOrNull { it !in posted }
-            Box(Modifier.aspectRatio(ratio).clickable { onPost(item) }) {
-                Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
-                if (item.tile.postOrder in posted) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.CheckCircle, null, tint = Color.White)
+    val ratio = tiles.first().tile.rect.let { it.width.toFloat() / it.height }
+    val next = (1..tiles.size).firstOrNull { it !in posted }
+    Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (row in tiles.sortedBy { it.tile.index }.chunked(InstagramSpec.GRID_COLUMNS)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (item in row) {
+                    Box(Modifier.weight(1f).aspectRatio(ratio).clickable { onPost(item) }) {
+                        Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
+                        if (item.tile.postOrder in posted) {
+                            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.CheckCircle, null, tint = Color.White)
+                            }
+                        }
+                        StepBadge(item.tile.postOrder, highlight = item.tile.postOrder == next)
                     }
                 }
-                StepBadge(item.tile.postOrder, highlight = item.tile.postOrder == next)
             }
         }
     }
@@ -246,7 +299,7 @@ private fun CarouselResult(tiles: List<ExportedTile>) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth().height(280.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items(tiles.sortedBy { it.tile.postOrder }, key = { it.tile.index }) { item ->
@@ -261,7 +314,7 @@ private fun CarouselResult(tiles: List<ExportedTile>) {
 
 @Composable
 private fun CoverResult(uri: Uri) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
         Thumbnail(uri, null, Modifier.size(180.dp).clip(CircleShape))
     }
 }
@@ -295,7 +348,7 @@ private fun Actions(
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showInstagram) {
             Button(onClick = onShareInstagram, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text(stringResource(R.string.open_in_instagram))
+                Text(stringResource(R.string.post_to_instagram))
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
