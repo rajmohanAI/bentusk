@@ -76,4 +76,19 @@ class TemplatesTest {
         }
         assertEquals(listOf(0, 1), t.slotsOn(layout.tiles[0].rect, layout))
     }
+
+    @Test
+    fun `every carousel template sits in a gallery theme`() {
+        assertTrue(Templates.Carousel.all { it.category in Templates.CarouselCategories })
+        assertEquals(Templates.Carousel.size, Templates.CarouselByCategory.sumOf { it.second.size })
+    }
+
+    @Test
+    fun `round corners on square slots make circles`() {
+        val t = Templates.byId("circle-stories")!!
+        val layout = t.layout()
+        val r = t.slotRect(0, layout)
+        assertTrue(kotlin.math.abs(r.width - r.height) <= 1)
+        assertTrue(kotlin.math.abs(t.cornerPx(0, layout) * 2 - r.width) <= 2)
+    }
 }

@@ -1,5 +1,6 @@
 package com.bentusk.engine
 
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -31,6 +32,7 @@ data class PxRect(val left: Int, val top: Int, val right: Int, val bottom: Int) 
     override fun toString() = "[$left,$top - $right,$bottom]"
 }
 
+@Serializable
 data class Vec2(val x: Double, val y: Double) {
     operator fun plus(o: Vec2) = Vec2(x + o.x, y + o.y)
     operator fun minus(o: Vec2) = Vec2(x - o.x, y - o.y)

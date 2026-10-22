@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Bentusk</string>
+    <string name="app_name" translatable="false">Carowsle</string>
     <string name="back">Back</string>
     <string name="close">Close</string>
     <string name="done">Done</string>
@@ -55,13 +55,13 @@
     <string name="exporting_detail">Rendering each slide at full quality</string>
     <string name="export_failed">Export did not finish. Check your storage space and try again.</string>
     <string name="saved_to_gallery">Saved %1$d to your gallery</string>
-    <string name="carousel_post_hint">Post all slides in one carousel, in this order. They are in the Bentusk album.</string>
+    <string name="carousel_post_hint">Post all slides in one carousel, in this order. They are in the Carowsle album.</string>
     <string name="grid_post_hint">Post one at a time, starting with 1. Tap a tile to open it in Instagram.</string>
     <string name="cover_post_hint">Add it to a highlight with Edit highlight, then Edit cover.</string>
     <string name="open_in_instagram">Open in Instagram</string>
-    <string name="share_app">Tell a friend about Bentusk</string>
-    <string name="share_app_text">I make my carousels and grids with Bentusk: %1$s</string>
-    <string name="review_title">Enjoying Bentusk?</string>
+    <string name="share_app">Tell a friend about Carowsle</string>
+    <string name="share_app_text">I make my carousels and grids with Carowsle: %1$s</string>
+    <string name="review_title">Enjoying Carowsle?</string>
     <string name="review_body">A quick rating on Google Play helps a lot.</string>
     <string name="review_yes">Rate now</string>
     <string name="planner_default_name">My grid</string>
@@ -75,10 +75,10 @@
     <string name="cover_profile_preview">On your profile</string>
     <string name="icon_size">Icon size</string>
     <string name="icons_count">Icons (%1$d)</string>
-    <string name="pro_title">Bentusk Pro</string>
+    <string name="pro_title">Carowsle Pro</string>
     <string name="trial_days_left">You have every Pro feature free for %1$d more days of your %2$d-day trial.</string>
     <string name="trial_ended">Your free trial has ended. The core tools stay free.</string>
-    <string name="pro_thanks">Thank you for supporting Bentusk.</string>
+    <string name="pro_thanks">Thank you for supporting Carowsle.</string>
     <string name="pro_feature_ads">No ads, ever</string>
     <string name="pro_feature_slides">Carousels up to 20 slides</string>
     <string name="pro_feature_png">Lossless PNG export</string>
@@ -129,6 +129,53 @@
     <string name="caption_copied">Caption copied. In Instagram, long-press the caption box and paste.</string>
     <string name="post_to_instagram">Post to Instagram</string>
     <string name="instagram_consent_title">Post with Instagram?</string>
-    <string name="instagram_consent_body">Bentusk will open the Instagram app with your images and copy your caption, so you can paste it. Instagram posts from the account signed in on this phone. Bentusk never sees your Instagram login.</string>
+    <string name="instagram_consent_body">Carowsle will open the Instagram app with your images and copy your caption, so you can paste it. Instagram posts from the account signed in on this phone. Carowsle never sees your Instagram login.</string>
     <string name="instagram_consent_allow">Allow</string>
+    <string name="ai_emoji">Add emoji</string>
+    <string name="ai_on_phone_note">Written on your phone from what your photos show. Nothing is uploaded.</string>
+    <string name="ai_use_caption">Use this caption</string>
+    <string name="bring_forward">Bring forward</string>
+    <string name="send_backward">Send backward</string>
+    <string name="create">Create</string>
+    <string name="create_blank_carousel">Blank carousel</string>
+    <string name="create_blank_carousel_body">Start from empty slides and place photos and text anywhere.</string>
+    <string name="create_blank_grid">Blank grid</string>
+    <string name="create_blank_grid_body">Design a 3-column profile grid from scratch.</string>
+    <string name="delete_project_title">Delete this draft?</string>
+    <string name="delete_project_body">The draft is removed from Projects. Your photos and anything you exported stay in your gallery.</string>
+    <string name="export">Export</string>
+    <string name="favorites_empty">Tap the heart on any template to keep it here.</string>
+    <string name="free_photo_hint">Drag to move, pinch to resize.</string>
+    <string name="grid_all_posted">All tiles posted</string>
+    <string name="lang_english">English</string>
+    <string name="lang_hindi">Hindi</string>
+    <string name="lang_hinglish">Hinglish</string>
+    <string name="layer_empty_photo">Empty photo slot</string>
+    <string name="layer_photo">Photo</string>
+    <string name="layers_empty">Nothing here yet. Add photos or text.</string>
+    <string name="post_tile_to_instagram">Post tile %1$d of %2$d to Instagram</string>
+    <string name="preview">Preview</string>
+    <string name="preview_hint">Tap anywhere to close</string>
+    <string name="projects_empty">Your drafts appear here, saved as you edit.</string>
+    <string name="projects_hint">Long-press a draft to delete it.</string>
+    <string name="redo">Redo</string>
+    <string name="undo">Undo</string>
+    <string name="search_templates">Search templates</string>
+    <string name="tab_favorites">Favorites</string>
+    <string name="tab_projects">Projects</string>
+    <string name="text_align">Alignment</string>
+    <string name="text_bold">Bold</string>
+    <string name="text_gesture_hint">Drag the text to move it, pinch to resize.</string>
+    <string name="tone_fun">Fun</string>
+    <string name="tone_minimal">Minimal</string>
+    <string name="tone_poetic">Poetic</string>
+    <string name="tone_business">Business</string>
+    <string name="tool_backgrounds">Backgrounds</string>
+    <string name="tool_layers">Layers</string>
+    <string name="tool_photos">Photos</string>
+    <string name="tool_ratio">Ratio</string>
+    <string name="tool_rows">Rows</string>
+    <string name="tool_slides">Slides</string>
+    <string name="write_again">Write again</string>
+    <string name="write_with_ai">Write with AI</string>
 </resources>

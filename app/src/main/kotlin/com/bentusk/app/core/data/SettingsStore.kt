@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
         val ExportCount = intPreferencesKey("export_count")
         val OnboardingDone = booleanPreferencesKey("onboarding_done")
         val InstagramConsent = booleanPreferencesKey("instagram_consent")
+        val Favorites = stringSetPreferencesKey("favorite_templates")
     }
 
     val settings: Flow<AppSettings> = context.settings.data.map { p ->
@@ -75,5 +77,15 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun setInstagramConsent(granted: Boolean) {
         context.settings.edit { it[Keys.InstagramConsent] = granted }
+    }
+
+    /** Ids of templates the user starred. */
+    val favorites: Flow<Set<String>> = context.settings.data.map { it[Keys.Favorites] ?: emptySet() }
+
+    suspend fun toggleFavorite(templateId: String) {
+        context.settings.edit { p ->
+            val now = p[Keys.Favorites] ?: emptySet()
+            p[Keys.Favorites] = if (templateId in now) now - templateId else now + templateId
+        }
     }
 }

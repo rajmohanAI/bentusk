@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Bentusk"
+rootProject.name = "Carowsle"
 include(":app")
 include(":engine")
