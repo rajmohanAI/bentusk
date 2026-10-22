@@ -13,6 +13,14 @@ object InstagramSpec {
 
     val StorySize = PxSize(1080, 1920)
 
+    const val CAPTION_MAX_CHARS = 2200
+
+    /** Instagram has limited posts to five hashtags since December 2025. */
+    const val MAX_HASHTAGS = 5
+
+    /** Captions are cut off after about this many characters in the feed, so the hook must fit before it. */
+    const val CAPTION_PREVIEW_CHARS = 125
+
     /** Diameter of the circle Instagram crops highlight covers to, as a fraction of story width. */
     const val HIGHLIGHT_CIRCLE_FRACTION = 0.62
 }
