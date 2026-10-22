@@ -3,14 +3,17 @@ package com.bentusk.app.feature.export
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bentusk.app.core.ai.PhotoLabeler
 import com.bentusk.app.core.data.SettingsStore
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.core.image.ExportProgress
 import com.bentusk.app.core.image.ExportedTile
 import com.bentusk.app.core.image.SliceExporter
-import com.bentusk.app.core.image.TemplateExporter
+import com.bentusk.app.core.image.DesignExporter
 import com.bentusk.app.core.storage.MediaSaver
 import com.bentusk.engine.Caption
+import com.bentusk.engine.CaptionIdeas
+import com.bentusk.engine.HashtagSets
 import com.bentusk.engine.TemplateKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -43,6 +46,7 @@ data class ExportUiState(
     val caption: String = "",
     /** True once the user has agreed to hand posts over to the Instagram app. */
     val instagramConsent: Boolean = false,
+    val ai: AiCaptionState = AiCaptionState(),
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
 
@@ -52,14 +56,29 @@ data class ExportUiState(
     val hashtags: List<String> get() = Caption.hashtags(caption)
 }
 
+/** The "Write with AI" sheet: the user's choices and the captions written for them. */
+data class AiCaptionState(
+    val open: Boolean = false,
+    val busy: Boolean = false,
+    val tone: CaptionIdeas.Tone = CaptionIdeas.Tone.Fun,
+    val language: CaptionIdeas.Language = CaptionIdeas.Language.English,
+    val emoji: Boolean = true,
+    val ideas: List<String> = emptyList(),
+    val variant: Int = 0,
+)
+
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val session: ExportSession,
     private val exporter: SliceExporter,
-    private val templateExporter: TemplateExporter,
+    private val designExporter: DesignExporter,
     private val saver: MediaSaver,
     private val settings: SettingsStore,
+    private val labeler: PhotoLabeler,
 ) : ViewModel() {
+
+    /** What the exported images show, worked out once on the phone. */
+    private var labels: List<String>? = null
 
     private val _state = MutableStateFlow(ExportUiState())
     val state: StateFlow<ExportUiState> = _state.asStateFlow()
@@ -93,6 +112,53 @@ class ExportViewModel @Inject constructor(
         _state.update { it.copy(caption = text) }
     }
 
+    fun openAi() {
+        _state.update { it.copy(ai = it.ai.copy(open = true)) }
+        if (_state.value.ai.ideas.isEmpty()) writeIdeas()
+    }
+
+    fun closeAi() = _state.update { it.copy(ai = it.ai.copy(open = false)) }
+
+    fun setTone(tone: CaptionIdeas.Tone) = changeAi { it.copy(tone = tone) }
+
+    fun setLanguage(language: CaptionIdeas.Language) = changeAi { it.copy(language = language) }
+
+    fun setEmoji(on: Boolean) = changeAi { it.copy(emoji = on) }
+
+    fun writeAgain() = changeAi { it.copy(variant = it.variant + 1) }
+
+    private fun changeAi(change: (AiCaptionState) -> AiCaptionState) {
+        _state.update { it.copy(ai = change(it.ai)) }
+        writeIdeas()
+    }
+
+    private var aiJob: Job? = null
+
+    private fun writeIdeas() {
+        aiJob?.cancel()
+        aiJob = viewModelScope.launch {
+            _state.update { it.copy(ai = it.ai.copy(busy = true)) }
+            val found = labels ?: labeler.labels(_state.value.uris).also { labels = it }
+            val s = _state.value
+            val ideas = CaptionIdeas.write(
+                CaptionIdeas.Request(found, s.ai.tone, s.ai.language, s.ai.emoji, slides = s.tiles.size, variant = s.ai.variant),
+            )
+            _state.update { it.copy(ai = it.ai.copy(busy = false, ideas = ideas)) }
+        }
+    }
+
+    /** Puts a written caption in the box, with a few fitting hashtags if it has none yet. It stays editable. */
+    fun useIdea(text: String) {
+        val theme = CaptionIdeas.theme(labels.orEmpty())
+        val topic = HashtagSets.Topics.firstOrNull { it.id == CaptionIdeas.hashtagTopic(theme) }
+        val existing = Caption.hashtags(_state.value.caption)
+        var caption = text
+        if (existing.isEmpty()) topic?.tags?.take(SUGGESTED_TAGS)?.forEach { caption = Caption.toggleHashtag(caption, it) }
+        else existing.forEach { caption = Caption.toggleHashtag(caption, it) }
+        setCaption(caption)
+        closeAi()
+    }
+
     /** The post is finished; the next one starts with an empty caption. */
     fun clearCaption() {
         session.caption = ""
@@ -119,7 +185,7 @@ class ExportViewModel @Inject constructor(
         if (job?.isActive == true) return
         val slice = session.slice
         val cover = session.cover
-        val template = session.template
+        val design = session.design
         job = viewModelScope.launch {
             try {
                 when {
@@ -128,15 +194,15 @@ class ExportViewModel @Inject constructor(
                         _state.update { it.copy(kind = kind, format = slice.format, total = slice.layout.count) }
                         collect(exporter.export(slice))
                     }
-                    template != null -> {
-                        val kind = if (template.template.kind == TemplateKind.Grid) ExportKind.Grid else ExportKind.Carousel
-                        _state.update { it.copy(kind = kind, format = template.format, total = template.layout.count) }
-                        collect(templateExporter.export(template))
+                    design != null -> {
+                        val kind = if (design.design.kind == TemplateKind.Grid) ExportKind.Grid else ExportKind.Carousel
+                        _state.update { it.copy(kind = kind, format = design.format, total = design.design.layout().count) }
+                        collect(designExporter.export(design))
                     }
                     cover != null -> {
                         _state.update { it.copy(kind = ExportKind.Cover, format = cover.format, total = 1) }
                         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                        val uri = saver.save(cover.bitmap, "bentusk_cover_$stamp.${cover.format.extension}", cover.format)
+                        val uri = saver.save(cover.bitmap, "carowsle_cover_$stamp.${cover.format.extension}", cover.format)
                         _state.update { it.copy(coverUri = uri, done = 1, finished = true) }
                     }
                     else -> _state.update { it.copy(failed = true) }
@@ -153,5 +219,6 @@ class ExportViewModel @Inject constructor(
 
     companion object {
         const val REVIEW_AFTER_EXPORTS = 3
+        private const val SUGGESTED_TAGS = 3
     }
 }

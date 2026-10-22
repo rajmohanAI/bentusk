@@ -242,7 +242,7 @@ class EditorViewModel @Inject constructor(
                 backdrop = s.backdrop.backdrop,
                 frame = s.frame.frame,
                 format = s.format,
-                filePrefix = if (s.mode == SliceMode.Carousel) "bentusk_carousel" else "bentusk_grid",
+                filePrefix = if (s.mode == SliceMode.Carousel) "carowsle_carousel" else "carowsle_grid",
             ),
         )
         _events.value = EditorEvent.OpenExport

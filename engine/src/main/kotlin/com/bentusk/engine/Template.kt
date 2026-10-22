@@ -1,8 +1,10 @@
 package com.bentusk.engine
 
+import kotlinx.serialization.Serializable
 import kotlin.math.roundToInt
 
 /** A rectangle in fractions of the whole layout canvas (0..1 on both axes), so templates work at any ratio. */
+@Serializable
 data class NRect(val left: Double, val top: Double, val right: Double, val bottom: Double) {
     init {
         require(left in 0.0..1.0 && right in 0.0..1.0 && top in 0.0..1.0 && bottom in 0.0..1.0) { "Out of canvas: $this" }
@@ -27,6 +29,9 @@ data class PhotoSlot(
 
 enum class TextAlign { Start, Center, End }
 
+/** Typefaces every Android phone has, so text needs no bundled fonts. */
+enum class TextFont { Sans, Serif, Mono, Script, Condensed }
+
 /** An editable line or paragraph of text drawn on top of the photos. */
 data class TextSlot(
     val rect: NRect,
@@ -36,6 +41,9 @@ data class TextSlot(
     val argb: Int,
     val align: TextAlign = TextAlign.Center,
     val bold: Boolean = true,
+    val font: TextFont = TextFont.Sans,
+    /** Colour of a rounded label behind the text, or null for none. */
+    val pill: Int? = null,
 )
 
 enum class TemplateKind { Carousel, Grid }
@@ -51,6 +59,8 @@ data class Template(
     val photos: List<PhotoSlot>,
     val texts: List<TextSlot> = emptyList(),
     val premium: Boolean = false,
+    /** Theme the gallery groups this template under. */
+    val category: String = "",
 ) {
     init {
         require(photos.isNotEmpty() || texts.isNotEmpty()) { "Template $id is empty" }

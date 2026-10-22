@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.billing.ktx)
     implementation(libs.play.services.ads)
+    implementation(libs.mlkit.image.labeling)
 
     testImplementation(libs.junit)
 }

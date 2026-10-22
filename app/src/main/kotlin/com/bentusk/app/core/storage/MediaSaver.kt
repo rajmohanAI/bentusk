@@ -17,7 +17,7 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Saves exports into the "Bentusk" album of the system gallery. */
+/** Saves exports into the "Carowsle" album of the system gallery. */
 @Singleton
 class MediaSaver @Inject constructor(@ApplicationContext private val context: Context) {
 
@@ -70,6 +70,6 @@ class MediaSaver @Inject constructor(@ApplicationContext private val context: Co
     }
 
     companion object {
-        const val ALBUM = "Bentusk"
+        const val ALBUM = "Carowsle"
     }
 }

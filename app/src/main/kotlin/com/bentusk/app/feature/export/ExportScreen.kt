@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -91,8 +93,15 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
         ShareHelper.shareImages(context, uris, state.format.mimeType, true, context.getString(R.string.share))
     }
     fun requestPost(uris: List<Uri>) {
-        if (state.instagramConsent) post(uris) else consentFor = uris
+        when {
+            // Without Instagram there is nothing to hand over to, so offer to install it.
+            !instagramInstalled -> ShareHelper.openInstagramListing(context)
+            state.instagramConsent -> post(uris)
+            else -> consentFor = uris
+        }
     }
+    // A grid goes up one tile at a time, in order; the main button always posts the next one.
+    val nextTile = state.tiles.sortedBy { it.tile.postOrder }.firstOrNull { it.tile.postOrder !in posted }
 
     Scaffold { padding ->
         Column(
@@ -132,11 +141,27 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                     ShareHelper.copyText(context, context.getString(R.string.caption), state.caption)
                                     Toast.makeText(context, captionCopied, Toast.LENGTH_SHORT).show()
                                 },
+                                onWriteWithAi = viewModel::openAi,
                             )
                         }
                     }
                     Actions(
-                        onShareInstagram = { requestPost(state.uris) },
+                        instagramLabel = when {
+                            state.kind != ExportKind.Grid -> stringResource(R.string.post_to_instagram)
+                            nextTile != null -> stringResource(R.string.post_tile_to_instagram, nextTile.tile.postOrder, state.tiles.size)
+                            else -> stringResource(R.string.grid_all_posted)
+                        },
+                        instagramEnabled = state.kind != ExportKind.Grid || nextTile != null,
+                        onShareInstagram = {
+                            if (state.kind == ExportKind.Grid) {
+                                nextTile?.let {
+                                    posted = posted + it.tile.postOrder
+                                    requestPost(listOf(it.uri))
+                                }
+                            } else {
+                                requestPost(state.uris)
+                            }
+                        },
                         onShare = {
                             ShareHelper.shareImages(context, state.uris, state.format.mimeType, false, context.getString(R.string.share))
                         },
@@ -151,12 +176,22 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                             viewModel.clearCaption()
                             onDone()
                         },
-                        // A grid is posted tile by tile from the preview above, not as one carousel.
-                        showInstagram = state.kind != ExportKind.Grid && instagramInstalled,
                     )
                 }
             }
         }
+    }
+
+    if (state.ai.open) {
+        AiCaptionSheet(
+            state = state.ai,
+            onDismiss = viewModel::closeAi,
+            onTone = viewModel::setTone,
+            onLanguage = viewModel::setLanguage,
+            onEmoji = viewModel::setEmoji,
+            onAgain = viewModel::writeAgain,
+            onUse = viewModel::useIdea,
+        )
     }
 
     consentFor?.let { uris ->
@@ -193,6 +228,9 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
         )
     }
 }
+
+/** A warm sunset gradient that reads as "post" without copying Instagram's mark. */
+private val InstagramGradient = Brush.linearGradient(listOf(Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)))
 
 private fun playStoreUrl(packageName: String) = "https://play.google.com/store/apps/details?id=$packageName"
 
@@ -339,16 +377,31 @@ private fun StepBadge(step: Int, highlight: Boolean) {
 
 @Composable
 private fun Actions(
+    instagramLabel: String,
+    instagramEnabled: Boolean,
     onShareInstagram: () -> Unit,
     onShare: () -> Unit,
     onShareApp: () -> Unit,
     onDone: () -> Unit,
-    showInstagram: Boolean,
 ) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showInstagram) {
-            Button(onClick = onShareInstagram, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text(stringResource(R.string.post_to_instagram))
+        Button(
+            onClick = onShareInstagram,
+            enabled = instagramEnabled,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues(),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        if (instagramEnabled) InstagramGradient else Brush.linearGradient(listOf(Color.Gray, Color.Gray)),
+                        RoundedCornerShape(50),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(instagramLabel, color = Color.White, style = MaterialTheme.typography.titleSmall)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -15,7 +15,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object ProRoute
 
-@Serializable data object TemplatesRoute
-
-/** [photos] are content URI strings joined by newlines, in the order they fill the template's slots. */
-@Serializable data class TemplateEditorRoute(val templateId: String, val photos: String)
+/**
+ * The design editor. It opens a saved [projectId], or a new design from [templateId], or a blank [kind]
+ * ([com.bentusk.engine.TemplateKind] name). [photos] are content URIs joined by newlines that fill it first.
+ */
+@Serializable
+data class StudioRoute(
+    val projectId: String? = null,
+    val templateId: String? = null,
+    val kind: String? = null,
+    val photos: String = "",
+)

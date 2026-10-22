@@ -1,4 +1,4 @@
-# Bentusk
+# Carowsle
 
 Seamless carousels, grid puzzles, a profile grid planner and highlight covers for Instagram, built natively for Android. Everything runs on the phone: no login, no watermark, no uploads.
 
@@ -15,7 +15,7 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 
 * **90-day free trial** with every feature unlocked, counted from first launch.
 * After the trial the core tools stay free, with one banner ad on the home screen only.
-* **Bentusk Pro** is a one-time ₹299 lifetime purchase (Play product id `bentusk_pro_lifetime`): no ads, carousels over 10 slides, PNG export, tile borders, gradient covers and multiple grid plans.
+* **Carowsle Pro** is a one-time ₹299 lifetime purchase (Play product id `bentusk_pro_lifetime`): no ads, carousels over 10 slides, PNG export, tile borders, gradient covers and multiple grid plans.
 
 The rules live in `engine/src/main/kotlin/com/bentusk/engine/Entitlement.kt`.
 
@@ -38,7 +38,7 @@ Instagram dimensions are kept in one place: `engine/.../InstagramSpec.kt`.
 engine/   Pure Kotlin geometry, decode planning and plan rules, with tests
 app/      Android app (Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore)
   core/image     decode, backdrop, tile renderer, export pipeline
-  core/storage   MediaStore saver ("Bentusk" album), share sheet
+  core/storage   MediaStore saver ("Carowsle" album), share sheet
   core/billing   Play Billing for the lifetime unlock
   core/ads       AdMob home banner
   feature/       home, editor (carousel + grid), export, planner, covers, pro
