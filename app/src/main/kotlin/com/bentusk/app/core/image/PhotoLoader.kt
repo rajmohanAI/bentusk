@@ -26,8 +26,9 @@ class PhotoLoader @Inject constructor(@ApplicationContext private val context: C
     /** Reads the photo's size and EXIF orientation without decoding pixels. */
     suspend fun probe(uri: Uri): SourceGeometry = withContext(Dispatchers.IO) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            ?: throw UnreadablePhotoException(uri)
+        // A bounds-only decode always returns null; success shows up in outWidth/outHeight instead.
+        val stream = context.contentResolver.openInputStream(uri) ?: throw UnreadablePhotoException(uri)
+        stream.use { BitmapFactory.decodeStream(it, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw UnreadablePhotoException(uri)
 
         val orientation = runCatching {

@@ -2,6 +2,7 @@ package com.bentusk.app.feature.editor
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -130,6 +131,7 @@ class EditorViewModel @Inject constructor(
             val backdrop = prepareBackdrop(bitmap, geometry, _state.value)
             _state.update { it.copy(preview = PreviewPhoto(bitmap, geometry, backdrop)) }
         } catch (e: Exception) {
+            Log.w(TAG, "Cannot load $photoUri", e)
             _state.update { it.copy(error = true) }
         }
     }
@@ -247,6 +249,8 @@ class EditorViewModel @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "EditorViewModel"
+
         /** Long side of the on-screen copy: sharp on any phone, a fraction of the full photo's memory. */
         const val PREVIEW_LONG_SIDE = 2400
     }
