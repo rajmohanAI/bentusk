@@ -8,9 +8,13 @@ import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.core.image.ExportProgress
 import com.bentusk.app.core.image.ExportedTile
 import com.bentusk.app.core.image.SliceExporter
+import com.bentusk.app.core.image.TemplateExporter
 import com.bentusk.app.core.storage.MediaSaver
+import com.bentusk.engine.Caption
+import com.bentusk.engine.TemplateKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,14 +40,23 @@ data class ExportUiState(
     val needsPermission: Boolean = false,
     /** True on the export where the app should ask for a Play review. */
     val askForReview: Boolean = false,
+    val caption: String = "",
+    /** True once the user has agreed to hand posts over to the Instagram app. */
+    val instagramConsent: Boolean = false,
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
+
+    /** Posts that go on the feed get a caption; covers are only used inside highlights. */
+    val hasCaption: Boolean get() = kind != ExportKind.Cover
+
+    val hashtags: List<String> get() = Caption.hashtags(caption)
 }
 
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val session: ExportSession,
     private val exporter: SliceExporter,
+    private val templateExporter: TemplateExporter,
     private val saver: MediaSaver,
     private val settings: SettingsStore,
 ) : ViewModel() {
@@ -54,6 +67,10 @@ class ExportViewModel @Inject constructor(
     private var job: Job? = null
 
     init {
+        _state.update { it.copy(caption = session.caption) }
+        viewModelScope.launch {
+            settings.settings.collect { s -> _state.update { it.copy(instagramConsent = s.instagramConsent) } }
+        }
         if (saver.needsLegacyPermission) _state.update { it.copy(needsPermission = true) } else start()
     }
 
@@ -71,24 +88,50 @@ class ExportViewModel @Inject constructor(
         start()
     }
 
+    fun setCaption(text: String) {
+        session.caption = text
+        _state.update { it.copy(caption = text) }
+    }
+
+    /** The post is finished; the next one starts with an empty caption. */
+    fun clearCaption() {
+        session.caption = ""
+    }
+
+    fun toggleHashtag(tag: String) = setCaption(Caption.toggleHashtag(_state.value.caption, tag))
+
+    fun grantInstagramConsent() {
+        viewModelScope.launch { settings.setInstagramConsent(true) }
+    }
+
+    private suspend fun collect(progress: Flow<ExportProgress>) {
+        progress.collect { p ->
+            when (p) {
+                is ExportProgress.Working -> _state.update { it.copy(done = p.done, total = p.total) }
+                is ExportProgress.Finished -> _state.update {
+                    it.copy(tiles = p.tiles, millis = p.millis, finished = true)
+                }
+            }
+        }
+    }
+
     private fun start() {
         if (job?.isActive == true) return
         val slice = session.slice
         val cover = session.cover
+        val template = session.template
         job = viewModelScope.launch {
             try {
                 when {
                     slice != null -> {
                         val kind = if (slice.filePrefix.contains("grid")) ExportKind.Grid else ExportKind.Carousel
                         _state.update { it.copy(kind = kind, format = slice.format, total = slice.layout.count) }
-                        exporter.export(slice).collect { p ->
-                            when (p) {
-                                is ExportProgress.Working -> _state.update { it.copy(done = p.done, total = p.total) }
-                                is ExportProgress.Finished -> _state.update {
-                                    it.copy(tiles = p.tiles, millis = p.millis, finished = true)
-                                }
-                            }
-                        }
+                        collect(exporter.export(slice))
+                    }
+                    template != null -> {
+                        val kind = if (template.template.kind == TemplateKind.Grid) ExportKind.Grid else ExportKind.Carousel
+                        _state.update { it.copy(kind = kind, format = template.format, total = template.layout.count) }
+                        collect(templateExporter.export(template))
                     }
                     cover != null -> {
                         _state.update { it.copy(kind = ExportKind.Cover, format = cover.format, total = 1) }

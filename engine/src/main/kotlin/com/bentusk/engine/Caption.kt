@@ -33,3 +33,19 @@ object Caption {
 
     fun isTooLong(text: String) = text.length > InstagramSpec.CAPTION_MAX_CHARS
 }
+
+/** Bundled hashtag ideas by topic, so the composer works offline. Each set is small on purpose: Instagram allows five. */
+object HashtagSets {
+    data class Topic(val id: String, val name: String, val tags: List<String>)
+
+    val Topics: List<Topic> = listOf(
+        Topic("travel", "Travel", listOf("#travel", "#wanderlust", "#travelgram", "#incredibleindia", "#roadtrip", "#explore", "#mountains", "#beach")),
+        Topic("food", "Food", listOf("#food", "#foodie", "#homecooking", "#streetfood", "#foodphotography", "#indianfood", "#dessert", "#coffee")),
+        Topic("fashion", "Fashion", listOf("#ootd", "#fashion", "#style", "#streetstyle", "#ethnicwear", "#outfitinspo", "#saree", "#sneakers")),
+        Topic("fitness", "Fitness", listOf("#fitness", "#workout", "#gym", "#yoga", "#running", "#healthylifestyle", "#fitindia", "#cycling")),
+        Topic("photography", "Photography", listOf("#photography", "#photooftheday", "#mobilephotography", "#landscape", "#portrait", "#streetphotography", "#goldenhour", "#carousel")),
+        Topic("business", "Business", listOf("#smallbusiness", "#shoplocal", "#newarrivals", "#handmade", "#entrepreneur", "#brand", "#supportsmallbusiness", "#sale")),
+        Topic("art", "Art & design", listOf("#art", "#design", "#illustration", "#artist", "#graphicdesign", "#minimal", "#interiordesign", "#creative")),
+        Topic("life", "Everyday", listOf("#photodump", "#weekend", "#friends", "#family", "#memories", "#lifelately", "#sundayvibes", "#celebration")),
+    )
+}

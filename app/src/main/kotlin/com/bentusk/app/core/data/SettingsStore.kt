@@ -24,6 +24,8 @@ data class AppSettings(
     val proCached: Boolean,
     val exportCount: Int,
     val onboardingDone: Boolean,
+    /** The user agreed that Bentusk may open Instagram with their images and caption. */
+    val instagramConsent: Boolean,
 )
 
 @Singleton
@@ -35,6 +37,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
         val ProCached = booleanPreferencesKey("pro_cached")
         val ExportCount = intPreferencesKey("export_count")
         val OnboardingDone = booleanPreferencesKey("onboarding_done")
+        val InstagramConsent = booleanPreferencesKey("instagram_consent")
     }
 
     val settings: Flow<AppSettings> = context.settings.data.map { p ->
@@ -44,6 +47,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
             proCached = p[Keys.ProCached] ?: false,
             exportCount = p[Keys.ExportCount] ?: 0,
             onboardingDone = p[Keys.OnboardingDone] ?: false,
+            instagramConsent = p[Keys.InstagramConsent] ?: false,
         )
     }
 
@@ -67,5 +71,9 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun setOnboardingDone() {
         context.settings.edit { it[Keys.OnboardingDone] = true }
+    }
+
+    suspend fun setInstagramConsent(granted: Boolean) {
+        context.settings.edit { it[Keys.InstagramConsent] = granted }
     }
 }

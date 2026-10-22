@@ -14,3 +14,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object CoversRoute
 
 @Serializable data object ProRoute
+
+@Serializable data object TemplatesRoute
+
+/** [photos] are content URI strings joined by newlines, in the order they fill the template's slots. */
+@Serializable data class TemplateEditorRoute(val templateId: String, val photos: String)

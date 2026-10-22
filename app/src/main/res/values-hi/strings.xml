@@ -97,4 +97,37 @@
         <item quantity="one">%1$d फ़ोटो नहीं जुड़ सकी।</item>
         <item quantity="other">%1$d फ़ोटो नहीं जुड़ सकीं।</item>
     </plurals>
+    <string name="tool_templates">टेम्पलेट</string>
+    <string name="tool_templates_body">तैयार कैरसेल और ग्रिड लेआउट। डिज़ाइन चुनें, फ़ोटो जोड़ें, पोस्ट करें।</string>
+    <string name="tab_carousel">कैरसेल</string>
+    <string name="tab_grid">ग्रिड</string>
+    <string name="templates_carousel_hint">फ़ोटो स्लाइडों के पार जा सकती हैं, ताकि स्वाइप करने पर कैरसेल बहता लगे।</string>
+    <string name="templates_grid_hint">3 कॉलम वाली प्रोफ़ाइल ग्रिड के डिज़ाइन। हर टाइल अलग से पोस्ट होती है।</string>
+    <string name="template_summary_carousel">%1$d फ़ोटो · %2$d स्लाइड</string>
+    <string name="template_summary_grid">%1$d फ़ोटो · %2$d टाइल</string>
+    <string name="locked_short">लॉक</string>
+    <string name="tab_photo">फ़ोटो</string>
+    <string name="tab_text">टेक्स्ट</string>
+    <string name="tab_style">स्टाइल</string>
+    <string name="template_tap_hint">बदलने या ठीक करने के लिए फ़ोटो पर टैप करें</string>
+    <string name="template_empty_slot">फ़ोटो %2$d में से %1$d खाली है</string>
+    <string name="template_slot">फ़ोटो %2$d में से %1$d</string>
+    <string name="add_photo">फ़ोटो जोड़ें</string>
+    <string name="replace_photo">बदलें</string>
+    <string name="template_gesture_hint">खिसकाने के लिए खींचें, ज़ूम के लिए पिंच करें। स्लाइड पर दो उंगलियों से।</string>
+    <string name="template_text_label">टेक्स्ट %1$d</string>
+    <string name="pro_feature_templates">सभी प्रीमियम टेम्पलेट</string>
+    <string name="ready_to_post">पोस्ट के लिए तैयार</string>
+    <string name="caption">कैप्शन</string>
+    <string name="caption_hint">कैप्शन लिखें। पहली लाइन सबसे पहले दिखती है।</string>
+    <string name="caption_preview_hint">“more” से पहले लगभग %1$d अक्षर दिखते हैं</string>
+    <string name="caption_counts">%1$d/%2$d · #%3$d/%4$d</string>
+    <string name="hashtag_ideas">हैशटैग सुझाव</string>
+    <string name="copy_caption">कॉपी</string>
+    <string name="hashtag_limit_note">Instagram एक पोस्ट में ज़्यादा से ज़्यादा %1$d हैशटैग देता है।</string>
+    <string name="caption_copied">कैप्शन कॉपी हो गया। Instagram में कैप्शन बॉक्स को देर तक दबाकर पेस्ट करें।</string>
+    <string name="post_to_instagram">Instagram पर पोस्ट करें</string>
+    <string name="instagram_consent_title">Instagram से पोस्ट करें?</string>
+    <string name="instagram_consent_body">Bentusk आपकी इमेज के साथ Instagram ऐप खोलेगा और कैप्शन कॉपी करेगा, ताकि आप उसे पेस्ट कर सकें। पोस्ट इस फ़ोन पर साइन-इन Instagram खाते से होगी। Bentusk आपका Instagram लॉगिन कभी नहीं देखता।</string>
+    <string name="instagram_consent_allow">अनुमति दें</string>
 </resources>

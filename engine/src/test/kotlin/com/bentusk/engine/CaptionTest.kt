@@ -27,4 +27,12 @@ class CaptionTest {
         assertEquals(InstagramSpec.MAX_HASHTAGS, Caption.hashtags(text).size)
         assertFalse(Caption.canAddHashtag(text))
     }
+
+    @Test
+    fun `bundled hashtags are valid and unique per topic`() {
+        for (topic in HashtagSets.Topics) {
+            for (tag in topic.tags) assertEquals(listOf(tag), Caption.hashtags(tag))
+            assertEquals(topic.tags.size, topic.tags.distinct().size)
+        }
+    }
 }

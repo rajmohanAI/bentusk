@@ -15,6 +15,8 @@ import com.bentusk.app.feature.export.ExportScreen
 import com.bentusk.app.feature.home.HomeScreen
 import com.bentusk.app.feature.planner.PlannerScreen
 import com.bentusk.app.feature.pro.ProScreen
+import com.bentusk.app.feature.templates.TemplateEditorScreen
+import com.bentusk.app.feature.templates.TemplateGalleryScreen
 
 @Composable
 fun BentuskNavHost(sharedPhoto: Uri?, onSharedPhotoHandled: () -> Unit) {
@@ -35,6 +37,7 @@ fun BentuskNavHost(sharedPhoto: Uri?, onSharedPhotoHandled: () -> Unit) {
                 onOpenEditor = { mode, uri -> nav.navigate(EditorRoute(mode.name, uri.toString())) },
                 onOpenPlanner = { nav.navigate(PlannerRoute) },
                 onOpenCovers = { nav.navigate(CoversRoute) },
+                onOpenTemplates = { nav.navigate(TemplatesRoute) },
                 onOpenPro = upgrade,
             )
         }
@@ -50,6 +53,18 @@ fun BentuskNavHost(sharedPhoto: Uri?, onSharedPhotoHandled: () -> Unit) {
         }
         composable<CoversRoute> {
             CoversScreen(onBack = back, onExport = { nav.navigate(ExportRoute) }, onUpgrade = upgrade)
+        }
+        composable<TemplatesRoute> {
+            TemplateGalleryScreen(
+                onBack = back,
+                onOpenTemplate = { template, uris ->
+                    nav.navigate(TemplateEditorRoute(template.id, uris.joinToString("\n")))
+                },
+                onUpgrade = upgrade,
+            )
+        }
+        composable<TemplateEditorRoute> {
+            TemplateEditorScreen(onBack = back, onExport = { nav.navigate(ExportRoute) }, onUpgrade = upgrade)
         }
         composable<ProRoute>(
             enterTransition = { slideInVertically { it } },
