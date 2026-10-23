@@ -219,4 +219,23 @@
     <!-- Caption -->
     <string name="keep_line_breaks">Keep line breaks</string>
     <string name="keep_line_breaks_hint">Adds an invisible character to blank lines so Instagram keeps your paragraphs</string>
+    <string name="check_title">Before you export</string>
+    <string name="check_export_anyway">Export anyway</string>
+    <string name="check_fix">Fix</string>
+    <string name="check_on_slide">Slide %1$d</string>
+    <string name="check_on_tile">Row %1$d, column %2$d</string>
+    <string name="check_empty_frame">Empty photo frame</string>
+    <string name="check_empty_frame_detail">It will export as plain background.</string>
+    <string name="check_soft_photo">Photo may look soft</string>
+    <string name="check_soft_photo_detail">Enlarged %1$s× past its own resolution. Use a sharper photo or zoom out.</string>
+    <string name="check_under_icons">Text under Instagram\'s icons</string>
+    <string name="check_under_icons_detail">The slide counter or tag icon can cover it. Move it in from the corner.</string>
+    <string name="check_small_text">Text may be hard to read</string>
+    <string name="check_small_text_detail">About %1$d pt on a phone. Make it at least %2$d pt.</string>
+    <string name="check_short_clip">Clip too short</string>
+    <string name="check_short_clip_detail">This clip is %1$s s. Instagram needs at least %2$d s.</string>
+    <plurals name="check_summary">
+        <item quantity="one">%d thing may not look right on Instagram. Tap it to fix it.</item>
+        <item quantity="other">%d things may not look right on Instagram. Tap one to fix it.</item>
+    </plurals>
 </resources>

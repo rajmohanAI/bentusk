@@ -133,6 +133,16 @@ fun StudioScreen(
         viewModel.openPanel(StudioPanel.None)
     }
 
+    state.issues?.let { issues ->
+        QualityCheckDialog(
+            design = state.design,
+            issues = issues,
+            onShow = viewModel::showIssue,
+            onExportAnyway = viewModel::exportAnyway,
+            onDismiss = viewModel::dismissIssues,
+        )
+    }
+
     val photos = state.photos
     val layout = state.layout
 
