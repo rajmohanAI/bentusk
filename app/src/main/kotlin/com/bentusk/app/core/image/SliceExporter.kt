@@ -35,7 +35,7 @@ data class SliceJob(
     val filePrefix: String,
 )
 
-data class ExportedTile(val tile: Tile, val uri: Uri, val fileName: String)
+data class ExportedTile(val tile: Tile, val uri: Uri, val fileName: String, val isVideo: Boolean = false)
 
 sealed interface ExportProgress {
     data class Working(val done: Int, val total: Int) : ExportProgress

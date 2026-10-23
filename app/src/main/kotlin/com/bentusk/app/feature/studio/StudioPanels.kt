@@ -42,11 +42,16 @@ import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.ViewModule
+import androidx.compose.material.icons.rounded.VideoLibrary
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -66,6 +71,7 @@ import com.bentusk.app.R
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.engine.Fill
+import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
@@ -106,6 +112,7 @@ fun MainToolbar(
     safeZones: Boolean,
     onSafeZones: () -> Unit,
     onPhotos: () -> Unit,
+    onVideo: () -> Unit,
     onText: () -> Unit,
     onPanel: (StudioPanel) -> Unit,
 ) {
@@ -117,6 +124,7 @@ fun MainToolbar(
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         ToolButton(Icons.Rounded.AddPhotoAlternate, stringResource(R.string.tool_photos), onClick = onPhotos)
+        if (kind == TemplateKind.Carousel) ToolButton(Icons.Rounded.VideoLibrary, stringResource(R.string.tool_video), onClick = onVideo)
         ToolButton(Icons.Rounded.TextFields, stringResource(R.string.tab_text), onClick = onText)
         ToolButton(Icons.Rounded.TouchApp, stringResource(R.string.tool_stickers), panel == StudioPanel.Stickers) {
             onPanel(StudioPanel.Stickers)
@@ -266,7 +274,11 @@ private fun LayerList(state: StudioState, viewModel: StudioViewModel) {
             ) {
                 val (icon, label) = when (layer) {
                     is TextLayer -> Icons.Rounded.TextFields to layer.text.ifBlank { "…" }
-                    is PhotoLayer -> Icons.Rounded.Image to stringResource(if (layer.uri == null) R.string.layer_empty_photo else R.string.layer_photo)
+                    is PhotoLayer -> when {
+                        layer.video != null -> Icons.Rounded.VideoLibrary to stringResource(R.string.layer_video)
+                        layer.uri == null -> Icons.Rounded.Image to stringResource(R.string.layer_empty_photo)
+                        else -> Icons.Rounded.Image to stringResource(R.string.layer_photo)
+                    }
                 }
                 Icon(icon, null, tint = Color.White.copy(alpha = 0.8f))
                 Spacer(Modifier.width(12.dp))
@@ -506,4 +518,66 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, onReplace: () -> U
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     }
+}
+
+/** Tools for the selected video clip: trim, sound and framing. */
+@Composable
+fun VideoTools(layer: PhotoLayer, viewModel: StudioViewModel, onReplace: () -> Unit) {
+    val clip = layer.video ?: return
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.video_trim), color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.weight(1f))
+            Text(
+                "${clock(clip.startMs)} – ${clock(clip.endMs)} · ${clock(clip.lengthMs)}",
+                color = Color.White.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        if (clip.durationMs > InstagramSpec.VIDEO_MIN_MS) {
+            RangeSlider(
+                value = clip.startMs.toFloat()..clip.endMs.toFloat(),
+                onValueChange = { viewModel.setTrim(it.start.toLong(), it.endInclusive.toLong()) },
+                valueRange = 0f..clip.durationMs.toFloat(),
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.25f),
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            ToolButton(
+                if (clip.muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                stringResource(if (clip.muted) R.string.video_unmute else R.string.video_mute),
+                clip.muted,
+                viewModel::toggleMute,
+            )
+            ToolButton(Icons.Rounded.CenterFocusStrong, stringResource(R.string.fill_frame), onClick = viewModel::fillSelected)
+            ToolButton(Icons.Rounded.VideoLibrary, stringResource(R.string.replace_video), onClick = onReplace)
+            ToolButton(Icons.Rounded.Delete, stringResource(R.string.remove), onClick = viewModel::clearSelectedPhoto)
+            ToolButton(Icons.Rounded.Check, stringResource(R.string.done)) { viewModel.select(null) }
+        }
+        Text(
+            stringResource(R.string.video_hint, InstagramSpec.CAROUSEL_VIDEO_MAX_MS / 1000),
+            color = Color.White.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+}
+
+/** A time like 0:05 or 1:02.5 for clip lengths; tenths show only when they matter. */
+private fun clock(ms: Long): String {
+    val total = ms / 1000
+    val tenths = (ms % 1000) / 100
+    val base = "%d:%02d".format(total / 60, total % 60)
+    return if (tenths == 0L) base else "$base.$tenths"
 }
