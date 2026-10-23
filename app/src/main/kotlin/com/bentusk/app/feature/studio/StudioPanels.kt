@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Animation
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CenterFocusStrong
@@ -72,6 +73,8 @@ import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.engine.Fill
 import com.bentusk.engine.InstagramSpec
+import com.bentusk.engine.Motion
+import com.bentusk.engine.Motions
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
@@ -369,7 +372,7 @@ private fun ColorDot(brush: Brush, selected: Boolean, onClick: () -> Unit) {
 
 /** Tools for the selected text: what it says, its typeface, colour, alignment and label. */
 @Composable
-fun TextTools(layer: TextLayer, viewModel: StudioViewModel) {
+fun TextTools(layer: TextLayer, viewModel: StudioViewModel, carousel: Boolean) {
     Column(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp)) {
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -439,6 +442,8 @@ fun TextTools(layer: TextLayer, viewModel: StudioViewModel) {
             }
             SmallIcon(alignIcon, R.string.text_align, onClick = viewModel::cycleAlign)
             SmallIcon(Icons.Rounded.FormatBold, R.string.text_bold, layer.bold) { viewModel.updateText { it.copy(bold = !it.bold) } }
+            // Moving text exports as video, which only carousels keep as a normal slide.
+            if (carousel) SmallIcon(Icons.Rounded.Animation, R.string.text_motion, layer.motion != null, viewModel::cycleMotion)
             Box(
                 Modifier
                     .size(40.dp)
@@ -467,7 +472,11 @@ fun TextTools(layer: TextLayer, viewModel: StudioViewModel) {
             SmallIcon(Icons.Rounded.Delete, R.string.remove, onClick = viewModel::deleteSelected)
         }
         Text(
-            stringResource(R.string.text_gesture_hint),
+            when (layer.motion) {
+                null -> stringResource(R.string.text_gesture_hint)
+                Motion.Nudge -> stringResource(R.string.motion_nudge_hint, Motions.SLIDE_MS / 1000.0)
+                Motion.Pulse -> stringResource(R.string.motion_pulse_hint, Motions.SLIDE_MS / 1000.0)
+            },
             color = Color.White.copy(alpha = 0.6f),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),

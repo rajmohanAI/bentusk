@@ -1,7 +1,6 @@
 package com.bentusk.app.core.video
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
@@ -12,7 +11,6 @@ import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.FrameDropEffect
 import androidx.media3.effect.MatrixTransformation
 import androidx.media3.effect.OverlayEffect
@@ -49,24 +47,25 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * Encodes one video slide: the trimmed clip scaled to cover the slide, zoomed and panned as framed in the editor,
- * with the slide's text and stickers laid over it. Output is H.264 video and AAC sound in an MP4, in standard
- * dynamic range (HDR clips are tone-mapped), at a steady 30 fps.
+ * Encodes video slides as H.264 video and AAC sound in an MP4, in standard dynamic range (HDR clips are
+ * tone-mapped), at a steady 30 fps. A slide is either a trimmed clip, scaled to cover the slide and zoomed and
+ * panned as framed in the editor, or a still picture held for a few seconds; either way the slide's text and
+ * stickers are laid over it by an overlay, which may change from frame to frame.
  */
 @OptIn(UnstableApi::class)
 @Singleton
 class VideoSlideEncoder @Inject constructor(@ApplicationContext private val context: Context) {
 
-    /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
-    suspend fun encode(
+    /** Encodes [clip] of the video at [source] under [overlay]. */
+    suspend fun encodeClip(
         source: Uri,
         clip: VideoClip,
         framing: Framing,
         slide: PxSize,
-        overlay: Bitmap,
+        overlay: TextureOverlay,
         output: File,
         onProgress: (Float) -> Unit = {},
-    ) = withContext(Dispatchers.Main) {
+    ) {
         val item = MediaItem.Builder()
             .setUri(source)
             .setClippingConfiguration(
@@ -81,12 +80,42 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
             FrameDropEffect.createDefaultFrameDropEffect(InstagramSpec.VIDEO_FPS.toFloat()),
             Presentation.createForWidthAndHeight(slide.width, slide.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP),
             MatrixTransformation { matrix },
-            OverlayEffect(ImmutableList.of<TextureOverlay>(BitmapOverlay.createStaticBitmapOverlay(overlay))),
+            OverlayEffect(ImmutableList.of(overlay)),
         )
         val edited = EditedMediaItem.Builder(item)
             .setRemoveAudio(clip.muted)
             .setEffects(Effects(emptyList(), effects))
             .build()
+        transform(edited, output, onProgress)
+    }
+
+    /** Encodes the picture in [image] (exactly [slide] in size) held for [durationMs], under [overlay]. */
+    suspend fun encodeStill(
+        image: File,
+        durationMs: Long,
+        slide: PxSize,
+        overlay: TextureOverlay,
+        output: File,
+        onProgress: (Float) -> Unit = {},
+    ) {
+        val item = MediaItem.Builder()
+            .setUri(Uri.fromFile(image))
+            .setMimeType(MimeTypes.IMAGE_PNG)
+            .setImageDurationMs(durationMs)
+            .build()
+        val effects = listOf<Effect>(
+            Presentation.createForWidthAndHeight(slide.width, slide.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP),
+            OverlayEffect(ImmutableList.of(overlay)),
+        )
+        val edited = EditedMediaItem.Builder(item)
+            .setFrameRate(InstagramSpec.VIDEO_FPS)
+            .setEffects(Effects(emptyList(), effects))
+            .build()
+        transform(edited, output, onProgress)
+    }
+
+    /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
+    private suspend fun transform(edited: EditedMediaItem, output: File, onProgress: (Float) -> Unit) = withContext(Dispatchers.Main) {
         val composition = Composition.Builder(EditedMediaItemSequence(edited)).apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)

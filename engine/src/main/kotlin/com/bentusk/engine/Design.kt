@@ -53,6 +53,8 @@ data class TextLayer(
     val bold: Boolean = true,
     val font: TextFont = TextFont.Sans,
     val pill: Int? = null,
+    /** Set to make the text move; a slide holding moving text exports as a short looping video. */
+    val motion: Motion? = null,
 ) : Layer
 
 /**

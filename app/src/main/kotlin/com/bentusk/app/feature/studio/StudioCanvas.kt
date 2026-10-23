@@ -1,5 +1,10 @@
 package com.bentusk.app.feature.studio
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -31,6 +36,7 @@ import com.bentusk.app.core.image.SlotPhoto
 import com.bentusk.app.ui.components.drawSafeZones
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.engine.Design
+import com.bentusk.engine.Motions
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.PxRect
 import com.bentusk.engine.SliceLayout
@@ -72,6 +78,17 @@ fun StudioCanvas(
     val currentGestures by rememberUpdatedState(gestures)
     val hasSelection by rememberUpdatedState(selected != null)
     val slop = LocalViewConfiguration.current.touchSlop
+    // Moving text plays its loop on screen, just as it will in the exported video.
+    val clock = if (Motions.moves(design)) {
+        rememberInfiniteTransition(label = "motion").animateFloat(
+            initialValue = 0f,
+            targetValue = Motions.LOOP_MS.toFloat(),
+            animationSpec = infiniteRepeatable(tween(Motions.LOOP_MS.toInt(), easing = LinearEasing)),
+            label = "motion-time",
+        )
+    } else {
+        null
+    }
 
     val input = if (gestures == null) {
         Modifier
@@ -131,7 +148,8 @@ fun StudioCanvas(
             native.save()
             native.scale(k, k)
             native.translate(-region.left.toFloat(), -region.top.toFloat())
-            DesignRenderer.draw(native, region, design, layout, photos, empty)
+            val shown = clock?.let { Motions.frame(design, it.value.toLong()) } ?: design
+            DesignRenderer.draw(native, region, shown, layout, photos, empty)
             native.restore()
         }
 

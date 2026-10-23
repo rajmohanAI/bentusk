@@ -210,7 +210,7 @@ fun StudioScreen(
                         label = "tools",
                     ) { m ->
                         when (m) {
-                            1 -> (state.selectedLayer as? TextLayer)?.let { TextTools(it, viewModel) }
+                            1 -> (state.selectedLayer as? TextLayer)?.let { TextTools(it, viewModel, state.design.kind == TemplateKind.Carousel) }
                             2 -> (state.selectedLayer as? PhotoLayer)?.let { PhotoTools(it, viewModel) { pickOne.launch(imagesOnly) } }
                             3 -> (state.selectedLayer as? PhotoLayer)?.let { VideoTools(it, viewModel) { pickVideo.launch(videoOnly) } }
                             else -> Column {

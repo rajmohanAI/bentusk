@@ -237,4 +237,7 @@
         <item quantity="one">%d चीज़ Instagram पर ठीक नहीं दिख सकती। ठीक करने के लिए उस पर टैप करें।</item>
         <item quantity="other">%d चीज़ें Instagram पर ठीक नहीं दिख सकतीं। ठीक करने के लिए किसी एक पर टैप करें।</item>
     </plurals>
+    <string name="text_motion">मोशन</string>
+    <string name="motion_nudge_hint">नज: अगली स्लाइड की ओर खिसकता है। यह स्लाइड %1$.1f सेकंड के लूपिंग वीडियो के रूप में एक्सपोर्ट होगी। पल्स के लिए मोशन फिर टैप करें।</string>
+    <string name="motion_pulse_hint">पल्स: बड़ा होकर वापस आता है। यह स्लाइड %1$.1f सेकंड के लूपिंग वीडियो के रूप में एक्सपोर्ट होगी। रोकने के लिए मोशन फिर टैप करें।</string>
 </resources>

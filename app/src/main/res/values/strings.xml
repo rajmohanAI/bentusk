@@ -238,4 +238,7 @@
         <item quantity="one">%d thing may not look right on Instagram. Tap it to fix it.</item>
         <item quantity="other">%d things may not look right on Instagram. Tap one to fix it.</item>
     </plurals>
+    <string name="text_motion">Motion</string>
+    <string name="motion_nudge_hint">Nudge: slides toward the next slide. This slide exports as a %1$.1f s looping video. Tap Motion again for pulse.</string>
+    <string name="motion_pulse_hint">Pulse: grows and settles. This slide exports as a %1$.1f s looping video. Tap Motion again to stop.</string>
 </resources>

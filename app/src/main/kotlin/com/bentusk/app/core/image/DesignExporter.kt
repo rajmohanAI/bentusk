@@ -1,14 +1,17 @@
 package com.bentusk.app.core.image
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import com.bentusk.app.core.storage.MediaSaver
+import com.bentusk.app.core.video.LayerOverlay
 import com.bentusk.app.core.video.VideoSlideEncoder
 import com.bentusk.engine.DecodePlan
 import com.bentusk.engine.Design
 import com.bentusk.engine.ExportNaming
 import com.bentusk.engine.Fill
 import com.bentusk.engine.FramingMath
+import com.bentusk.engine.Motions
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.SlotMath
 import com.bentusk.engine.Tile
@@ -66,11 +69,14 @@ class DesignExporter @Inject constructor(
             val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(started))
             val prefix = "carowsle_" + (design.templateId?.replace('-', '_') ?: "design")
             val results = ArrayList<ExportedTile>(sequence.size)
+            val moving = Motions.movingTiles(design)
             for (tile in sequence) {
                 currentCoroutineContext().ensureActive()
                 val video = VideoSlides.videoOn(design, tile.index)
                 if (video != null) {
                     results += exportVideo(design, video, tile, prefix, stamp, sequence.size, decoded)
+                } else if (tile.index in moving) {
+                    results += exportMoving(design, tile, prefix, stamp, sequence.size, decoded)
                 } else {
                     val bitmap = DesignRenderer.renderTile(tile.rect, design, layout, decoded)
                     try {
@@ -99,14 +105,13 @@ class DesignExporter @Inject constructor(
         photos: Map<Long, SlotPhoto>,
     ): ExportedTile {
         val clip = requireNotNull(video.video)
-        val layout = design.layout()
         // Only the layers above the clip are drawn, on a clear background, so the clip shows through everywhere else.
         val above = design.layers.dropWhile { it.id != video.id }.drop(1)
-        val overlay = DesignRenderer.renderTile(tile.rect, design.copy(fill = Fill(0), layers = above), layout, photos)
+        val overlay = overlay(design.copy(fill = Fill(0), layers = above), tile, photos)
         val name = ExportNaming.tileFileName(prefix, stamp, tile, total, "mp4")
         val temp = File(context.cacheDir, name)
         try {
-            encoder.encode(
+            encoder.encodeClip(
                 source = Uri.parse(video.uri),
                 clip = clip,
                 framing = video.framing.copy(rotationDegrees = 0.0, zoom = maxOf(1.0, video.framing.zoom)),
@@ -118,6 +123,49 @@ class DesignExporter @Inject constructor(
         } finally {
             overlay.recycle()
             temp.delete()
+        }
+    }
+
+    /**
+     * Encodes a photo slide with moving text as a short looping video. Everything below the lowest moving layer is
+     * drawn once as the background picture; that layer and everything above it are drawn again for every frame.
+     */
+    private suspend fun exportMoving(
+        design: Design,
+        tile: Tile,
+        prefix: String,
+        stamp: String,
+        total: Int,
+        photos: Map<Long, SlotPhoto>,
+    ): ExportedTile {
+        val layout = design.layout()
+        val split = Motions.firstMoving(design)
+        val name = ExportNaming.tileFileName(prefix, stamp, tile, total, "mp4")
+        val background = File(context.cacheDir, "$name.png")
+        val temp = File(context.cacheDir, name)
+        val still = DesignRenderer.renderTile(tile.rect, design.copy(layers = design.layers.take(split)), layout, photos)
+        try {
+            background.outputStream().use { still.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        } finally {
+            still.recycle()
+        }
+        val overlay = overlay(design.copy(fill = Fill(0), layers = design.layers.drop(split)), tile, photos)
+        try {
+            encoder.encodeStill(background, Motions.SLIDE_MS, tile.rect.size, overlay, temp)
+            return ExportedTile(tile, saver.saveVideo(temp, name), name, isVideo = true)
+        } finally {
+            overlay.recycle()
+            background.delete()
+            temp.delete()
+        }
+    }
+
+    /** [layers] drawn over one slide, moving with time when any of them has motion. */
+    private fun overlay(layers: Design, tile: Tile, photos: Map<Long, SlotPhoto>): LayerOverlay {
+        val layout = layers.layout()
+        return LayerOverlay(tile.rect.size, Motions.moves(layers)) { canvas, timeMs ->
+            canvas.translate(-tile.rect.left.toFloat(), -tile.rect.top.toFloat())
+            DesignRenderer.draw(canvas, tile.rect, Motions.frame(layers, timeMs), layout, photos, EmptySlots.Nothing)
         }
     }
 }
