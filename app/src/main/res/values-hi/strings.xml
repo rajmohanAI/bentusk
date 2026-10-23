@@ -218,4 +218,23 @@
     <!-- Caption -->
     <string name="keep_line_breaks">लाइन ब्रेक बनाए रखें</string>
     <string name="keep_line_breaks_hint">खाली लाइनों में एक अदृश्य अक्षर जोड़ता है, ताकि Instagram आपके पैराग्राफ़ बनाए रखे</string>
+    <string name="check_title">एक्सपोर्ट से पहले</string>
+    <string name="check_export_anyway">फिर भी एक्सपोर्ट करें</string>
+    <string name="check_fix">ठीक करें</string>
+    <string name="check_on_slide">स्लाइड %1$d</string>
+    <string name="check_on_tile">पंक्ति %1$d, कॉलम %2$d</string>
+    <string name="check_empty_frame">खाली फ़ोटो फ़्रेम</string>
+    <string name="check_empty_frame_detail">यह सादे बैकग्राउंड के रूप में एक्सपोर्ट होगा।</string>
+    <string name="check_soft_photo">फ़ोटो धुंधली दिख सकती है</string>
+    <string name="check_soft_photo_detail">अपने रेज़ॉल्यूशन से %1$s× बड़ी की गई है। ज़्यादा साफ़ फ़ोटो लें या ज़ूम कम करें।</string>
+    <string name="check_under_icons">टेक्स्ट Instagram के आइकन के नीचे</string>
+    <string name="check_under_icons_detail">स्लाइड काउंटर या टैग आइकन इसे ढक सकता है। इसे कोने से अंदर खिसकाएँ।</string>
+    <string name="check_small_text">टेक्स्ट पढ़ने में मुश्किल हो सकता है</string>
+    <string name="check_small_text_detail">फ़ोन पर लगभग %1$d pt। इसे कम से कम %2$d pt करें।</string>
+    <string name="check_short_clip">क्लिप बहुत छोटी है</string>
+    <string name="check_short_clip_detail">यह क्लिप %1$s सेकंड की है। Instagram को कम से कम %2$d सेकंड चाहिए।</string>
+    <plurals name="check_summary">
+        <item quantity="one">%d चीज़ Instagram पर ठीक नहीं दिख सकती। ठीक करने के लिए उस पर टैप करें।</item>
+        <item quantity="other">%d चीज़ें Instagram पर ठीक नहीं दिख सकतीं। ठीक करने के लिए किसी एक पर टैप करें।</item>
+    </plurals>
 </resources>

@@ -34,8 +34,10 @@ import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
-import com.bentusk.engine.SliceLayout
 import com.bentusk.engine.PxSize
+import com.bentusk.engine.QualityCheck
+import com.bentusk.engine.QualityIssue
+import com.bentusk.engine.SliceLayout
 import com.bentusk.engine.SourceGeometry
 import com.bentusk.engine.StickerPlacement
 import com.bentusk.engine.Stickers
@@ -85,6 +87,8 @@ data class StudioState(
     val format: ExportFormat = ExportFormat.Jpeg,
     val showGuides: Boolean = true,
     val showSafeZones: Boolean = false,
+    /** Findings of the pre-export check, shown until the user exports anyway or goes to fix one. */
+    val issues: List<QualityIssue>? = null,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
 ) {
     val layout: SliceLayout get() = design.layout()
@@ -582,7 +586,30 @@ class StudioViewModel @Inject constructor(
             _events.value = StudioEvent.Locked(ProFeature.LongCarousel)
             return
         }
-        _state.update { it.copy(selected = null) }
+        val sources = s.design.stills.mapNotNull { layer ->
+            layer.uri?.let { s.loaded[it] }?.let { layer.id to it.geometry.upright }
+        }.toMap()
+        val issues = QualityCheck.run(s.design, sources)
+        if (issues.isNotEmpty()) {
+            _state.update { it.copy(issues = issues, selected = null, panel = StudioPanel.None) }
+            return
+        }
+        startExport()
+    }
+
+    /** Exports despite the check's findings. */
+    fun exportAnyway() = startExport()
+
+    fun dismissIssues() = _state.update { it.copy(issues = null) }
+
+    /** Closes the check and takes the user to the layer behind [issue]. */
+    fun showIssue(issue: QualityIssue) {
+        _state.update { it.copy(issues = null, page = issue.tile, selected = issue.layerId, panel = StudioPanel.None) }
+    }
+
+    private fun startExport() {
+        val s = _state.value
+        _state.update { it.copy(selected = null, issues = null) }
         session.start(DesignJob(s.design, s.format))
         _events.value = StudioEvent.OpenExport
     }

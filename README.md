@@ -13,6 +13,7 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Safe zones | Overlay in the Studio and editors marking where Instagram's slide counter and tag icon sit, and where the 3:4 grid and 1:1 views crop the cover |
 | Stickers | Swipe nudges that run across a seam onto the next slide, and call-to-action banners for the closing slide, all editable text |
 | Video slides | Put a clip on any carousel slide, trim it (up to 60 s), mute it and frame it; it exports as a 1080-wide H.264 MP4 at 30 fps with the slide's text and stickers burned in, HDR clips tone-mapped to standard colour |
+| Export check | Before export, flags empty frames, photos enlarged past their resolution, text under the slide counter or tag icon, text too small to read on a phone, and clips under 3 s; tap a finding to jump to it |
 | Pinned posts | Pin up to 3 photos to the top of a grid plan and switch the plan between 3:4 and 1:1 views |
 | Caption line breaks | Blank lines are copied with an invisible character so Instagram keeps paragraph spacing (can be turned off) |
 
