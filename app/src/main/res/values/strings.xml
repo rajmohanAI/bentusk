@@ -185,6 +185,13 @@
     <string name="safe_zone_square">Square crop</string>
     <string name="toggle_safe_zones">Show safe zones</string>
     <string name="tool_safe_zones">Safe zones</string>
+    <string name="tool_video">Video</string>
+    <string name="layer_video">Video</string>
+    <string name="video_trim">Trim</string>
+    <string name="video_mute">Sound on</string>
+    <string name="video_unmute">Muted</string>
+    <string name="replace_video">Replace</string>
+    <string name="video_hint">Pinch to zoom, drag to frame. Exports as an MP4 slide, up to %1$d seconds.</string>
 
     <!-- Stickers -->
     <string name="tool_stickers">Stickers</string>

@@ -18,6 +18,7 @@ import com.bentusk.app.core.image.EmptySlots
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.core.image.PhotoLoader
 import com.bentusk.app.core.image.SlotPhoto
+import com.bentusk.app.core.video.VideoProbe
 import com.bentusk.app.feature.export.ExportSession
 import com.bentusk.app.navigation.StudioRoute
 import com.bentusk.engine.DecodePlan
@@ -34,6 +35,7 @@ import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
 import com.bentusk.engine.SliceLayout
+import com.bentusk.engine.PxSize
 import com.bentusk.engine.SourceGeometry
 import com.bentusk.engine.StickerPlacement
 import com.bentusk.engine.Stickers
@@ -42,6 +44,7 @@ import com.bentusk.engine.Templates
 import com.bentusk.engine.TextAlign
 import com.bentusk.engine.TextLayer
 import com.bentusk.engine.Vec2
+import com.bentusk.engine.VideoSlides
 import com.bentusk.engine.toDesign
 import com.bentusk.engine.withRect
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -110,6 +113,7 @@ class StudioViewModel @Inject constructor(
     savedState: SavedStateHandle,
     @ApplicationContext private val context: Context,
     private val loader: PhotoLoader,
+    private val videos: VideoProbe,
     private val session: ExportSession,
     private val projects: ProjectStore,
     entitlements: EntitlementRepository,
@@ -139,7 +143,7 @@ class StudioViewModel @Inject constructor(
                 ?: route.templateId?.let { Templates.byId(it)?.toDesign() }
                 ?: blank(route.kind)
             _state.update { it.copy(design = design, ready = true) }
-            design.photos.mapNotNull { it.uri }.distinct().forEach { ensureLoaded(it) }
+            design.photos.filter { it.uri != null }.distinctBy { it.uri }.forEach { ensureLoaded(it.uri!!, video = it.video != null) }
             val uris = route.photos.split('\n').filter { it.isNotBlank() }.map(Uri::parse)
             if (uris.isNotEmpty() && route.projectId == null) placePhotos(uris, record = false)
             autosave()
@@ -280,8 +284,15 @@ class StudioViewModel @Inject constructor(
                 val slot = s.design.rectPx(layer, layout)
                 val c = centroid - Vec2(slot.left + slot.width / 2.0, slot.top + slot.height / 2.0)
                 val f = layer.framing
-                val pivoted = (f.offset - c).rotated(rotation) * zoom + c + pan
-                val framing = FramingMath.clamp(loaded.geometry.upright, slot.size, Framing(f.rotationDegrees + rotation, f.zoom * zoom, pivoted))
+                // Video slides zoom and pan only, so the encoder can reproduce them exactly.
+                val turn = if (layer.video != null) 0.0 else rotation
+                val pivoted = (f.offset - c).rotated(turn) * zoom + c + pan
+                val moved = Framing(f.rotationDegrees + turn, f.zoom * zoom, pivoted)
+                val framing = if (layer.video != null) {
+                    VideoSlides.clamp(loaded.geometry.upright, slot.size, moved)
+                } else {
+                    FramingMath.clamp(loaded.geometry.upright, slot.size, moved)
+                }
                 s.design.replace(layer.copy(framing = framing))
             }
             else -> {
@@ -306,13 +317,19 @@ class StudioViewModel @Inject constructor(
 
     // Photos
 
-    private suspend fun ensureLoaded(uri: String): LoadedPhoto? {
+    /** Loads a photo, or a video's first frame, for drawing on screen. */
+    private suspend fun ensureLoaded(uri: String, video: Boolean = false): LoadedPhoto? {
         _state.value.loaded[uri]?.let { return it }
         return try {
             val parsed = Uri.parse(uri)
-            val geometry = loader.probe(parsed)
-            val bitmap = loader.decode(parsed, DecodePlan.forPreview(geometry.upright, PREVIEW_LONG_SIDE).sampleSize)
-            LoadedPhoto(geometry, bitmap).also { photo -> _state.update { it.copy(loaded = it.loaded + (uri to photo)) } }
+            val photo = if (video) {
+                val poster = videos.read(parsed, PREVIEW_LONG_SIDE).poster
+                LoadedPhoto(SourceGeometry(PxSize(poster.width, poster.height)), poster)
+            } else {
+                val geometry = loader.probe(parsed)
+                LoadedPhoto(geometry, loader.decode(parsed, DecodePlan.forPreview(geometry.upright, PREVIEW_LONG_SIDE).sampleSize))
+            }
+            photo.also { p -> _state.update { it.copy(loaded = it.loaded + (uri to p)) } }
         } catch (e: Exception) {
             Log.w(TAG, "Cannot load $uri", e)
             _state.update { it.copy(failedPhotos = it.failedPhotos + 1) }
@@ -369,7 +386,8 @@ class StudioViewModel @Inject constructor(
             val updated = if (target.free) {
                 target.copy(uri = key, framing = Framing.Default, rect = reshape(target.rect, photo.geometry.upright.aspect, s.design))
             } else {
-                target.copy(uri = key, framing = Framing.Default)
+                // A photo put on a video slide turns it back into a photo slide.
+                target.copy(uri = key, framing = Framing.Default, video = null)
             }
             commit(s.design.replace(updated))
             select(target.id)
@@ -398,7 +416,10 @@ class StudioViewModel @Inject constructor(
         val layer = s.selectedLayer as? PhotoLayer ?: return
         val loaded = layer.uri?.let { s.loaded[it] } ?: return
         val slot = s.design.rectPx(layer, s.layout)
-        commit(s.design.replace(layer.copy(framing = FramingMath.clamp(loaded.geometry.upright, slot.size, change(layer.framing)))))
+        val framing = change(layer.framing).let {
+            if (layer.video != null) VideoSlides.clamp(loaded.geometry.upright, slot.size, it) else FramingMath.clamp(loaded.geometry.upright, slot.size, it)
+        }
+        commit(s.design.replace(layer.copy(framing = framing)))
     }
 
     fun rotateSelected() = adjustSelected { it.copy(rotationDegrees = Math.round(it.rotationDegrees / 90.0) * 90.0 + 90.0) }
@@ -410,7 +431,52 @@ class StudioViewModel @Inject constructor(
     fun clearSelectedPhoto() {
         val s = _state.value
         val layer = s.selectedLayer as? PhotoLayer ?: return
-        commit(if (layer.free) s.design.remove(layer.id) else s.design.replace(layer.copy(uri = null, framing = Framing.Default)))
+        val gone = layer.free || layer.video != null
+        commit(if (gone) s.design.remove(layer.id) else s.design.replace(layer.copy(uri = null, framing = Framing.Default)))
+    }
+
+    // Video
+
+    /** Puts a clip on the slide in view, under its text and stickers. Carousels only. */
+    fun addVideo(uri: Uri) {
+        val s = _state.value
+        if (s.design.kind != TemplateKind.Carousel) return
+        viewModelScope.launch {
+            _state.update { it.copy(busy = true, panel = StudioPanel.None) }
+            persist(uri)
+            val key = uri.toString()
+            val duration = runCatching { videos.read(uri, PREVIEW_LONG_SIDE) }.getOrNull()?.let { info ->
+                if (_state.value.loaded[key] == null) {
+                    _state.update { it.copy(loaded = it.loaded + (key to LoadedPhoto(SourceGeometry(PxSize(info.poster.width, info.poster.height)), info.poster))) }
+                } else {
+                    info.poster.recycle()
+                }
+                info.durationMs
+            }
+            if (duration == null) {
+                _state.update { it.copy(busy = false, failedPhotos = it.failedPhotos + 1) }
+                return@launch
+            }
+            val page = _state.value.page
+            val design = VideoSlides.place(_state.value.design, page, key, duration)
+            commit(design)
+            _state.update { it.copy(busy = false, selected = VideoSlides.videoOn(design, page)?.id) }
+        }
+    }
+
+    /** Sets the part of the selected clip that plays. */
+    fun setTrim(startMs: Long, endMs: Long) {
+        val s = _state.value
+        val layer = s.selectedLayer as? PhotoLayer ?: return
+        val clip = layer.video ?: return
+        commit(s.design.replace(layer.copy(video = clip.trimmed(startMs, endMs))), key = "trim-${layer.id}")
+    }
+
+    fun toggleMute() {
+        val s = _state.value
+        val layer = s.selectedLayer as? PhotoLayer ?: return
+        val clip = layer.video ?: return
+        commit(s.design.replace(layer.copy(video = clip.copy(muted = !clip.muted))))
     }
 
     // Text

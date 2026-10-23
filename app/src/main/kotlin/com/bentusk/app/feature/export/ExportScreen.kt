@@ -90,7 +90,7 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
             ShareHelper.copyText(context, context.getString(R.string.caption), state.captionToPost)
             Toast.makeText(context, captionCopied, Toast.LENGTH_LONG).show()
         }
-        ShareHelper.shareImages(context, uris, state.format.mimeType, true, context.getString(R.string.share))
+        ShareHelper.shareImages(context, uris, state.shareMime, true, context.getString(R.string.share))
     }
     fun requestPost(uris: List<Uri>) {
         when {
@@ -165,7 +165,7 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                             }
                         },
                         onShare = {
-                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, false, context.getString(R.string.share))
+                            ShareHelper.shareImages(context, state.uris, state.shareMime, false, context.getString(R.string.share))
                         },
                         onShareApp = {
                             ShareHelper.shareText(

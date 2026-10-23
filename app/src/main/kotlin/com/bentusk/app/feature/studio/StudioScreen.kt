@@ -98,7 +98,11 @@ fun StudioScreen(
     val pickOne = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(viewModel::replacePhoto)
     }
+    val pickVideo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::addVideo)
+    }
     val imagesOnly = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+    val videoOnly = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
 
     LaunchedEffect(event) {
         when (event) {
@@ -183,9 +187,9 @@ fun StudioScreen(
             }
             Surface(color = StudioColors.Panel, contentColor = Color.White) {
                 Column(Modifier.navigationBarsPadding()) {
-                    val mode = when (state.selectedLayer) {
+                    val mode = when (val layer = state.selectedLayer) {
                         is TextLayer -> 1
-                        is PhotoLayer -> 2
+                        is PhotoLayer -> if (layer.video != null) 3 else 2
                         else -> 0
                     }
                     AnimatedContent(
@@ -198,6 +202,7 @@ fun StudioScreen(
                         when (m) {
                             1 -> (state.selectedLayer as? TextLayer)?.let { TextTools(it, viewModel) }
                             2 -> (state.selectedLayer as? PhotoLayer)?.let { PhotoTools(it, viewModel) { pickOne.launch(imagesOnly) } }
+                            3 -> (state.selectedLayer as? PhotoLayer)?.let { VideoTools(it, viewModel) { pickVideo.launch(videoOnly) } }
                             else -> Column {
                                 AnimatedVisibility(visible = state.panel != StudioPanel.None) {
                                     PanelContent(state, viewModel)
@@ -208,6 +213,7 @@ fun StudioScreen(
                                     safeZones = state.showSafeZones,
                                     onSafeZones = viewModel::toggleSafeZones,
                                     onPhotos = { pickMany.launch(imagesOnly) },
+                                    onVideo = { pickVideo.launch(videoOnly) },
                                     onText = viewModel::addText,
                                     onPanel = viewModel::openPanel,
                                 )

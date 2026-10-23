@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -146,6 +147,21 @@ fun StudioCanvas(
                 val plus = Color.Black.copy(alpha = 0.35f)
                 drawLine(plus, c - Offset(arm, 0f), c + Offset(arm, 0f), strokeWidth = 2.5f * density)
                 drawLine(plus, c - Offset(0f, arm), c + Offset(0f, arm), strokeWidth = 2.5f * density)
+            }
+            // A play badge marks slides that export as video, since the canvas shows only the poster frame.
+            for (layer in design.layersOn(region, layout)) {
+                if (layer !is PhotoLayer || layer.video == null) continue
+                val (topLeft, _) = box(design.rectPx(layer, layout))
+                val r = 14f * density
+                val c = topLeft + Offset(r + 10f * density, r + 10f * density)
+                drawCircle(Color.Black.copy(alpha = 0.55f), r, c)
+                val play = Path().apply {
+                    moveTo(c.x - r * 0.3f, c.y - r * 0.42f)
+                    lineTo(c.x + r * 0.45f, c.y)
+                    lineTo(c.x - r * 0.3f, c.y + r * 0.42f)
+                    close()
+                }
+                drawPath(play, Color.White)
             }
         }
 

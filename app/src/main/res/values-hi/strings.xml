@@ -184,6 +184,13 @@
     <string name="safe_zone_square">स्क्वेयर क्रॉप</string>
     <string name="toggle_safe_zones">सेफ़ ज़ोन दिखाएँ</string>
     <string name="tool_safe_zones">सेफ़ ज़ोन</string>
+    <string name="tool_video">वीडियो</string>
+    <string name="layer_video">वीडियो</string>
+    <string name="video_trim">ट्रिम</string>
+    <string name="video_mute">आवाज़ चालू</string>
+    <string name="video_unmute">म्यूट</string>
+    <string name="replace_video">बदलें</string>
+    <string name="video_hint">ज़ूम के लिए पिंच करें, फ़्रेम के लिए खींचें। MP4 स्लाइड के रूप में एक्सपोर्ट होगा, %1$d सेकंड तक।</string>
 
     <!-- Stickers -->
     <string name="tool_stickers">स्टिकर</string>

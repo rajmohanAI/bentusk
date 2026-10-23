@@ -35,6 +35,8 @@ data class PhotoLayer(
     /** In slot pixels at export resolution. */
     val framing: Framing = Framing.Default,
     val free: Boolean = false,
+    /** Set when [uri] is a video clip; the layer then fills one whole slide and exports as a video. */
+    val video: VideoClip? = null,
 ) : Layer
 
 /** Text wrapped to the width of [rect] and centred in it vertically. */
@@ -73,6 +75,9 @@ data class Design(
     }
 
     val photos: List<PhotoLayer> get() = layers.filterIsInstance<PhotoLayer>()
+
+    /** Photo layers holding still pictures, which the photo pipeline decodes. */
+    val stills: List<PhotoLayer> get() = photos.filter { it.video == null }
 
     fun layer(id: Long): Layer? = layers.firstOrNull { it.id == id }
 

@@ -51,6 +51,14 @@ data class ExportUiState(
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
 
+    /** What the share sheet is told it is getting: photos, videos, or a mix of both. */
+    val shareMime: String
+        get() = when {
+            tiles.isEmpty() || tiles.none { it.isVideo } -> format.mimeType
+            tiles.all { it.isVideo } -> MediaSaver.VIDEO_MIME
+            else -> "*/*"
+        }
+
     /** Posts that go on the feed get a caption; covers are only used inside highlights. */
     val hasCaption: Boolean get() = kind != ExportKind.Cover
 
