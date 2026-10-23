@@ -13,6 +13,12 @@ object InstagramSpec {
 
     val StorySize = PxSize(1080, 1920)
 
+    /** Shape of a post's thumbnail on the profile grid. */
+    val GridThumb = PxSize(3, 4)
+
+    /** Posts a profile can pin to the top of its grid. */
+    const val MAX_PINNED = 3
+
     const val CAPTION_MAX_CHARS = 2200
 
     /** Instagram has limited posts to five hashtags since December 2025. */

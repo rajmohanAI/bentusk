@@ -74,6 +74,7 @@ data class EditorState(
     val frame: FrameChoice = FrameChoice.None,
     val format: ExportFormat = ExportFormat.Jpeg,
     val showGuides: Boolean = true,
+    val showSafeZones: Boolean = false,
     val preview: PreviewPhoto? = null,
     val error: Boolean = false,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
@@ -229,6 +230,8 @@ class EditorViewModel @Inject constructor(
     }
 
     fun toggleGuides() = _state.update { it.copy(showGuides = !it.showGuides) }
+
+    fun toggleSafeZones() = _state.update { it.copy(showSafeZones = !it.showSafeZones) }
 
     fun export() {
         val s = _state.value

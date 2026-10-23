@@ -44,8 +44,10 @@ class DesignExporter @Inject constructor(
                 val geometry = loader.probe(uri)
                 val slot = design.rectPx(layer, layout)
                 val framing = FramingMath.clamp(geometry.upright, slot.size, layer.framing)
-                val plan = DecodePlan.forRender(geometry.upright, SlotMath.scale(geometry, slot, framing), budget)
-                decoded[layer.id] = SlotPhoto(loader.decode(uri, plan.sampleSize), geometry, framing)
+                val scale = SlotMath.scale(geometry, slot, framing)
+                val plan = DecodePlan.forRender(geometry.upright, scale, budget)
+                val bitmap = Resampler.prepare(loader.decode(uri, plan.sampleSize), geometry, scale, budget)
+                decoded[layer.id] = SlotPhoto(bitmap, geometry, framing)
             }
 
             val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(started))

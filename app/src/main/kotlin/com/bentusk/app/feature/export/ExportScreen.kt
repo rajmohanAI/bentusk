@@ -87,7 +87,7 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     // Instagram cannot take a caption through a share intent, so it goes on the clipboard for a long-press paste.
     fun post(uris: List<Uri>) {
         if (state.caption.isNotBlank()) {
-            ShareHelper.copyText(context, context.getString(R.string.caption), state.caption)
+            ShareHelper.copyText(context, context.getString(R.string.caption), state.captionToPost)
             Toast.makeText(context, captionCopied, Toast.LENGTH_LONG).show()
         }
         ShareHelper.shareImages(context, uris, state.format.mimeType, true, context.getString(R.string.share))
@@ -138,10 +138,12 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                 onCaptionChange = viewModel::setCaption,
                                 onToggleHashtag = viewModel::toggleHashtag,
                                 onCopy = {
-                                    ShareHelper.copyText(context, context.getString(R.string.caption), state.caption)
+                                    ShareHelper.copyText(context, context.getString(R.string.caption), state.captionToPost)
                                     Toast.makeText(context, captionCopied, Toast.LENGTH_SHORT).show()
                                 },
                                 onWriteWithAi = viewModel::openAi,
+                                keepLineBreaks = state.keepLineBreaks,
+                                onKeepLineBreaks = viewModel::setKeepLineBreaks,
                             )
                         }
                     }

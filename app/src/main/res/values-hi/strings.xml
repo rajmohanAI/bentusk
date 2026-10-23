@@ -177,4 +177,38 @@
     <string name="tool_slides">स्लाइड</string>
     <string name="write_again">फिर से लिखें</string>
     <string name="write_with_ai">AI से लिखें</string>
+
+    <!-- Safe zones -->
+    <string name="safe_zone_icons">आइकन से ढका</string>
+    <string name="safe_zone_grid">ग्रिड क्रॉप</string>
+    <string name="safe_zone_square">स्क्वेयर क्रॉप</string>
+    <string name="toggle_safe_zones">सेफ़ ज़ोन दिखाएँ</string>
+    <string name="tool_safe_zones">सेफ़ ज़ोन</string>
+
+    <!-- Stickers -->
+    <string name="tool_stickers">स्टिकर</string>
+    <string name="stickers_nudges">स्वाइप संकेत</string>
+    <string name="stickers_nudges_hint">दिख रही स्लाइड पर जुड़ता है। तीर और लाइन अगली स्लाइड तक जाते हैं, ताकि लोग स्वाइप करते रहें।</string>
+    <string name="stickers_nudges_hint_grid">दिख रही टाइल पर जुड़ता है। सीम स्टिकर दाईं ओर की टाइल तक जाते हैं।</string>
+    <string name="stickers_calls">कॉल टू एक्शन</string>
+    <string name="sticker_arrow">→</string>
+    <string name="sticker_keep_swiping">स्वाइप करते रहें »</string>
+    <string name="sticker_swipe">स्वाइप करें →</string>
+    <string name="sticker_wait_for_it">आगे देखिए…</string>
+    <string name="sticker_save">बाद के लिए सेव करें</string>
+    <string name="sticker_share">किसी दोस्त को भेजें</string>
+    <string name="sticker_follow">और के लिए फ़ॉलो करें</string>
+    <string name="sticker_comment">कमेंट में बताइए</string>
+    <string name="sticker_link_in_bio">लिंक बायो में</string>
+
+    <!-- Planner: pins and views -->
+    <string name="planner_pin_limit">Instagram पर ज़्यादा से ज़्यादा %1$d पोस्ट पिन हो सकती हैं</string>
+    <string name="planner_view_grid">ग्रिड व्यू 3:4</string>
+    <string name="planner_view_square">स्क्वेयर व्यू 1:1</string>
+    <string name="planner_pin">ऊपर पिन करें</string>
+    <string name="planner_unpin">अनपिन करें</string>
+
+    <!-- Caption -->
+    <string name="keep_line_breaks">लाइन ब्रेक बनाए रखें</string>
+    <string name="keep_line_breaks_hint">खाली लाइनों में एक अदृश्य अक्षर जोड़ता है, ताकि Instagram आपके पैराग्राफ़ बनाए रखे</string>
 </resources>

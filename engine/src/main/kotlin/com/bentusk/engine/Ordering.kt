@@ -16,3 +16,14 @@ object ExportNaming {
         return "${prefix}_${sessionStamp}_${order}of$total.$extension"
     }
 }
+
+/** How a profile grid orders posts: pinned posts first, then the rest, each group keeping its own order. */
+object PinnedGrid {
+    fun <T> order(items: List<T>, pinned: (T) -> Boolean): List<T> {
+        val (top, rest) = items.partition(pinned)
+        return top + rest
+    }
+
+    /** Whether one more post can be pinned when [pinnedCount] already are. */
+    fun canPin(pinnedCount: Int) = pinnedCount < InstagramSpec.MAX_PINNED
+}

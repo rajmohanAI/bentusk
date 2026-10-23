@@ -35,6 +35,8 @@ import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
 import com.bentusk.engine.SliceLayout
 import com.bentusk.engine.SourceGeometry
+import com.bentusk.engine.StickerPlacement
+import com.bentusk.engine.Stickers
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.Templates
 import com.bentusk.engine.TextAlign
@@ -62,7 +64,7 @@ import kotlin.math.roundToInt
 /** A photo decoded for the screen. */
 class LoadedPhoto(val geometry: SourceGeometry, val bitmap: Bitmap)
 
-enum class StudioPanel { None, Add, Slides, Layers, Ratio, Background }
+enum class StudioPanel { None, Add, Slides, Layers, Ratio, Background, Stickers }
 
 data class StudioState(
     val design: Design,
@@ -79,6 +81,7 @@ data class StudioState(
     val previewing: Boolean = false,
     val format: ExportFormat = ExportFormat.Jpeg,
     val showGuides: Boolean = true,
+    val showSafeZones: Boolean = false,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
 ) {
     val layout: SliceLayout get() = design.layout()
@@ -299,6 +302,8 @@ class StudioViewModel @Inject constructor(
 
     fun toggleGuides() = _state.update { it.copy(showGuides = !it.showGuides) }
 
+    fun toggleSafeZones() = _state.update { it.copy(showSafeZones = !it.showSafeZones) }
+
     // Photos
 
     private suspend fun ensureLoaded(uri: String): LoadedPhoto? {
@@ -424,6 +429,15 @@ class StudioViewModel @Inject constructor(
             size = 0.07,
             argb = if (dark) 0xFF1B1C20.toInt() else 0xFFFFFFFF.toInt(),
         )
+        commit(s.design.add(layer))
+        _state.update { it.copy(selected = layer.id, panel = StudioPanel.None) }
+    }
+
+    /** Adds a ready-made swipe nudge or call to action to the slide in view, selected so it can be edited at once. */
+    fun addSticker(placement: StickerPlacement, text: String) {
+        val s = _state.value
+        val ink = if (luminance(s.design.fill.top) > 0.5) 0xFF1B1C20.toInt() else 0xFFFFFFFF.toInt()
+        val layer = Stickers.layer(s.design, s.page, placement, text, ink)
         commit(s.design.add(layer))
         _state.update { it.copy(selected = layer.id, panel = StudioPanel.None) }
     }

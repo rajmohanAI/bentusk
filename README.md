@@ -10,6 +10,10 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Grid puzzle | 3×1 up to 3×5 tiles, numbered in posting order (bottom-right first) |
 | Grid preview | A 3-column planner with long-press drag to reorder, saved on the device |
 | Highlight covers | 146 icons on 26 backgrounds, exported at 1080×1920 and centred for the circle crop |
+| Safe zones | Overlay in the Studio and editors marking where Instagram's slide counter and tag icon sit, and where the 3:4 grid and 1:1 views crop the cover |
+| Stickers | Swipe nudges that run across a seam onto the next slide, and call-to-action banners for the closing slide, all editable text |
+| Pinned posts | Pin up to 3 photos to the top of a grid plan and switch the plan between 3:4 and 1:1 views |
+| Caption line breaks | Blank lines are copied with an invisible character so Instagram keeps paragraph spacing (can be turned off) |
 
 ## Plans
 
@@ -28,6 +32,7 @@ The `engine` module is plain Kotlin with no Android dependency, so the geometry 
 * Photos are decoded at the smallest power-of-two subsample that still gives at least one source pixel per output pixel, within a memory budget, so 50+ MP photos export at full detail without running out of memory.
 * EXIF orientation is applied as part of the transform rather than by rotating pixels.
 * Wide-gamut photos are converted to sRGB on decode, the colour space Instagram shows.
+* Photos drawn well below full size are first shrunk with a Lanczos-3 filter, streamed a few rows at a time, so fine detail stays clean instead of aliasing under a bilinear draw.
 * The editor preview draws with the same transform, backdrop and frame code as the exporter, so what you see is what is saved.
 
 Instagram dimensions are kept in one place: `engine/.../InstagramSpec.kt`.

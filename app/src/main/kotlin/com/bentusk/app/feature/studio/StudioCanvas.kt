@@ -27,11 +27,13 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import com.bentusk.app.core.image.DesignRenderer
 import com.bentusk.app.core.image.EmptySlots
 import com.bentusk.app.core.image.SlotPhoto
+import com.bentusk.app.ui.components.drawSafeZones
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.engine.Design
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.PxRect
 import com.bentusk.engine.SliceLayout
+import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextLayer
 import com.bentusk.engine.Vec2
 import kotlin.math.abs
@@ -60,6 +62,8 @@ fun StudioCanvas(
     region: PxRect = PxRect(0, 0, layout.canvas.width, layout.canvas.height),
     selected: Long? = null,
     showGuides: Boolean = false,
+    /** Marks where Instagram's icons cover the post and where the grid and square views crop it. */
+    showSafeZones: Boolean = false,
     empty: EmptySlots = EmptySlots.Placeholder,
     gestures: CanvasGestures? = null,
 ) {
@@ -159,6 +163,17 @@ fun StudioCanvas(
                     drawLine(shadow, Offset(0f, y + 1), Offset(size.width, y + 1), strokeWidth = 1.5f)
                     drawLine(line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5f)
                 }
+            }
+        }
+
+        if (showSafeZones) {
+            val carousel = design.kind == TemplateKind.Carousel
+            for (tile in layout.tiles) {
+                val r = tile.rect
+                if (r.right <= region.left || r.left >= region.right || r.bottom <= region.top || r.top >= region.bottom) continue
+                val (topLeft, s) = box(r)
+                // The cover is what the grid shows; on a grid every tile is its own cover.
+                drawSafeZones(topLeft, s, carousel = carousel, cover = !carousel || tile.postOrder == 1)
             }
         }
 

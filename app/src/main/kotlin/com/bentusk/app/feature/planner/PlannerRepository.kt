@@ -77,6 +77,8 @@ class PlannerRepository @Inject constructor(
 
     suspend fun saveOrder(ids: List<Long>) = dao.reorder(ids)
 
+    suspend fun setPinned(item: PlanItemEntity, pinned: Boolean, idsInOrder: List<Long>) = dao.pin(item.id, pinned, idsInOrder)
+
     private suspend fun makeThumbnail(uri: Uri): String {
         val geometry = loader.probe(uri)
         val plan = DecodePlan.forPreview(geometry.upright, THUMB_LONG_SIDE)

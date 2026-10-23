@@ -27,6 +27,8 @@ data class AppSettings(
     val onboardingDone: Boolean,
     /** The user agreed that Bentusk may open Instagram with their images and caption. */
     val instagramConsent: Boolean,
+    /** Copy captions with invisible blank lines so Instagram keeps paragraph spacing. */
+    val keepLineBreaks: Boolean,
 )
 
 @Singleton
@@ -40,6 +42,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
         val OnboardingDone = booleanPreferencesKey("onboarding_done")
         val InstagramConsent = booleanPreferencesKey("instagram_consent")
         val Favorites = stringSetPreferencesKey("favorite_templates")
+        val KeepLineBreaks = booleanPreferencesKey("keep_line_breaks")
     }
 
     val settings: Flow<AppSettings> = context.settings.data.map { p ->
@@ -50,6 +53,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
             exportCount = p[Keys.ExportCount] ?: 0,
             onboardingDone = p[Keys.OnboardingDone] ?: false,
             instagramConsent = p[Keys.InstagramConsent] ?: false,
+            keepLineBreaks = p[Keys.KeepLineBreaks] ?: true,
         )
     }
 
@@ -77,6 +81,10 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun setInstagramConsent(granted: Boolean) {
         context.settings.edit { it[Keys.InstagramConsent] = granted }
+    }
+
+    suspend fun setKeepLineBreaks(on: Boolean) {
+        context.settings.edit { it[Keys.KeepLineBreaks] = on }
     }
 
     /** Ids of templates the user starred. */
