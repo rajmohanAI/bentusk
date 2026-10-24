@@ -240,4 +240,18 @@
     <string name="text_motion">मोशन</string>
     <string name="motion_nudge_hint">नज: अगली स्लाइड की ओर खिसकता है। यह स्लाइड %1$.1f सेकंड के लूपिंग वीडियो के रूप में एक्सपोर्ट होगी। पल्स के लिए मोशन फिर टैप करें।</string>
     <string name="motion_pulse_hint">पल्स: बड़ा होकर वापस आता है। यह स्लाइड %1$.1f सेकंड के लूपिंग वीडियो के रूप में एक्सपोर्ट होगी। रोकने के लिए मोशन फिर टैप करें।</string>
+    <string name="planner_import">Instagram आर्काइव इंपोर्ट करें</string>
+    <string name="planner_import_title">अपनी पोस्ट की हुई ग्रिड जोड़ें</string>
+    <string name="planner_import_body">अपना प्लान प्रोफ़ाइल पर पहले से मौजूद पोस्ट के ऊपर देखें। Instagram में Accounts Center, फिर Your information and permissions, फिर Download your information पर जाएँ। अपना Instagram अकाउंट, Content कैटेगरी और JSON फ़ॉर्मैट चुनें। ZIP आने पर उसे यहाँ चुनें। Carowsle आपकी %1$d सबसे नई पोस्ट सिर्फ़ इसी फ़ोन पर पढ़ता है और कुछ भी अपलोड नहीं करता।</string>
+    <string name="planner_import_choose">ZIP चुनें</string>
+    <string name="planner_import_none">उस ZIP में कोई पोस्ट नहीं मिली। डाउनलोड JSON फ़ॉर्मैट में माँगें, HTML में नहीं।</string>
+    <string name="planner_import_unreadable">वह फ़ाइल पढ़ी नहीं जा सकी। Instagram की भेजी हुई .zip फ़ाइल चुनें।</string>
+    <plurals name="planner_import_done">
+        <item quantity="one">आपके आर्काइव से %d पोस्ट जोड़ी गई।</item>
+        <item quantity="other">आपके आर्काइव से %d पोस्ट जोड़ी गईं।</item>
+    </plurals>
+    <plurals name="planner_import_already">
+        <item quantity="one">%d पहले से इस प्लान में थी।</item>
+        <item quantity="other">%d पहले से इस प्लान में थीं।</item>
+    </plurals>
 </resources>

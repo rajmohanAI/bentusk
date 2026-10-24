@@ -35,6 +35,8 @@ data class PlannerState(
     val squarePreview: Boolean = false,
     /** Set when the user tried to pin more posts than Instagram allows. */
     val pinLimitHit: Boolean = false,
+    /** Outcome of the last archive import, shown once. */
+    val archiveResult: ArchiveImport? = null,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
 )
 
@@ -107,6 +109,18 @@ class PlannerViewModel @Inject constructor(
     }
 
     fun consumeFailures() = _state.update { it.copy(failedImports = 0) }
+
+    /** Lays the newest posts from the user's own Instagram archive ZIP under the plan. */
+    fun importArchive(zip: Uri) {
+        val id = _state.value.selectedPlanId ?: return
+        _state.update { it.copy(adding = true) }
+        viewModelScope.launch {
+            val result = repository.importArchive(id, zip)
+            _state.update { it.copy(adding = false, archiveResult = result) }
+        }
+    }
+
+    fun consumeArchiveResult() = _state.update { it.copy(archiveResult = null) }
 
     fun setSquarePreview(on: Boolean) = _state.update { it.copy(squarePreview = on) }
 

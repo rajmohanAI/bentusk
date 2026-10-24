@@ -16,6 +16,7 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Moving text | Give any text on a carousel slide a gentle nudge or pulse; that slide exports as a 4.8 s seamless-looping MP4, and video slides keep their moving text too |
 | Export check | Before export, flags empty frames, photos enlarged past their resolution, text under the slide counter or tag icon, text too small to read on a phone, and clips under 3 s; tap a finding to jump to it |
 | Pinned posts | Pin up to 3 photos to the top of a grid plan and switch the plan between 3:4 and 1:1 views |
+| Archive import | Pick the ZIP from Instagram's "Download your information" (JSON) and your 60 newest posts and reels are laid under the plan, read on the phone only; re-importing skips posts already there |
 | Caption line breaks | Blank lines are copied with an invisible character so Instagram keeps paragraph spacing (can be turned off) |
 
 ## Plans

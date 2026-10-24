@@ -27,6 +27,8 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material.icons.rounded.Unarchive
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -38,17 +40,21 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -60,6 +66,7 @@ import com.bentusk.app.R
 import com.bentusk.app.ui.components.ChoiceRow
 import com.bentusk.app.ui.components.Thumbnail
 import com.bentusk.app.ui.theme.BentuskColors
+import com.bentusk.engine.InstagramArchive
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.PostRatio
 import sh.calvin.reorderable.ReorderableItem
@@ -81,6 +88,26 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
     val goPro = stringResource(R.string.go_pro)
     val failedMessage = pluralStringResource(R.plurals.import_failed, state.failedImports, state.failedImports)
     val newPlanName = stringResource(R.string.planner_new_name, state.plans.size + 1)
+    var showImportHelp by remember { mutableStateOf(false) }
+    val zipPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::importArchive)
+    }
+    val context = LocalContext.current
+    LaunchedEffect(state.archiveResult) {
+        val result = state.archiveResult ?: return@LaunchedEffect
+        viewModel.consumeArchiveResult()
+        val res = context.resources
+        val message = when (result) {
+            is ArchiveImport.Done -> buildString {
+                append(res.getQuantityString(R.plurals.planner_import_done, result.added, result.added))
+                if (result.alreadyThere > 0) append(' ').append(res.getQuantityString(R.plurals.planner_import_already, result.alreadyThere, result.alreadyThere))
+                if (result.failed > 0) append(' ').append(res.getQuantityString(R.plurals.import_failed, result.failed, result.failed))
+            }
+            ArchiveImport.NoPosts -> res.getString(R.string.planner_import_none)
+            ArchiveImport.Unreadable -> res.getString(R.string.planner_import_unreadable)
+        }
+        snackbar.showSnackbar(message, withDismissAction = true)
+    }
 
     LaunchedEffect(locked) {
         if (locked) {
@@ -102,6 +129,21 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
         }
     }
 
+    if (showImportHelp) {
+        AlertDialog(
+            onDismissRequest = { showImportHelp = false },
+            title = { Text(stringResource(R.string.planner_import_title)) },
+            text = { Text(stringResource(R.string.planner_import_body, InstagramArchive.MAX_POSTS)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImportHelp = false
+                    zipPicker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                }) { Text(stringResource(R.string.planner_import_choose)) }
+            },
+            dismissButton = { TextButton(onClick = { showImportHelp = false }) { Text(stringResource(R.string.not_now)) } },
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
@@ -113,6 +155,9 @@ fun PlannerScreen(onBack: () -> Unit, onUpgrade: () -> Unit, viewModel: PlannerV
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showImportHelp = true }) {
+                        Icon(Icons.Rounded.Unarchive, stringResource(R.string.planner_import))
+                    }
                     if (state.plans.size > 1) {
                         IconButton(onClick = viewModel::deleteSelectedPlan) {
                             Icon(Icons.Rounded.DeleteOutline, stringResource(R.string.planner_delete_plan))
