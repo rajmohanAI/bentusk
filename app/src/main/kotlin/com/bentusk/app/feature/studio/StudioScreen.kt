@@ -74,6 +74,7 @@ import com.bentusk.app.ui.components.SafeZoneLegend
 import com.bentusk.app.ui.theme.BentuskColors
 import com.bentusk.app.ui.theme.NumericStyle
 import com.bentusk.engine.InstagramSpec
+import com.bentusk.engine.Palettes
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextLayer
@@ -210,7 +211,7 @@ fun StudioScreen(
                         label = "tools",
                     ) { m ->
                         when (m) {
-                            1 -> (state.selectedLayer as? TextLayer)?.let { TextTools(it, viewModel, state.design.kind == TemplateKind.Carousel) }
+                            1 -> (state.selectedLayer as? TextLayer)?.let { TextTools(it, viewModel, state.design.kind == TemplateKind.Carousel, state.design.palette?.let(Palettes::byId)) }
                             2 -> (state.selectedLayer as? PhotoLayer)?.let { PhotoTools(it, viewModel) { pickOne.launch(imagesOnly) } }
                             3 -> (state.selectedLayer as? PhotoLayer)?.let { VideoTools(it, viewModel) { pickVideo.launch(videoOnly) } }
                             else -> Column {

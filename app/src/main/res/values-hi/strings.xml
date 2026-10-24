@@ -274,4 +274,14 @@
     <string name="reminder_on_day">%1$s, %2$s</string>
     <string name="reminder_too_soon">अभी से कम से कम %1$d मिनट बाद का समय चुनें, या अभी पोस्ट करें।</string>
     <string name="reminder_needs_notifications">पोस्ट रिमाइंडर पाने के लिए नोटिफ़िकेशन की अनुमति दें।</string>
+    <string name="palette_all">सभी</string>
+    <string name="palette_bold">चटक</string>
+    <string name="palette_pastel">पेस्टल</string>
+    <string name="palette_earthy">मिट्टी जैसे</string>
+    <string name="palette_luxe">शाही</string>
+    <string name="palette_fresh">ताज़ा</string>
+    <string name="palette_moody">गहरे</string>
+    <string name="palette_retro">रेट्रो</string>
+    <string name="palette_neon">नियॉन</string>
+    <string name="palette_classic">क्लासिक</string>
 </resources>

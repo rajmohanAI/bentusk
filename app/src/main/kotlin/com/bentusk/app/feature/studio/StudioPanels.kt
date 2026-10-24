@@ -7,14 +7,17 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -55,6 +58,10 @@ import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +73,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bentusk.app.R
@@ -75,6 +83,9 @@ import com.bentusk.engine.Fill
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.Motion
 import com.bentusk.engine.Motions
+import com.bentusk.engine.Palette
+import com.bentusk.engine.PaletteMood
+import com.bentusk.engine.Palettes
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
@@ -179,6 +190,8 @@ fun PanelContent(state: StudioState, viewModel: StudioViewModel) {
                 )
             }
             StudioPanel.Background -> {
+                PalettePicker(state.design.palette, viewModel::applyPalette)
+                Spacer(Modifier.size(12.dp))
                 SwatchRow(StudioPalette.Solids.map { Fill(it) }, state.design.fill, viewModel::setFill)
                 Spacer(Modifier.size(8.dp))
                 SwatchRow(StudioPalette.Gradients, state.design.fill, viewModel::setFill)
@@ -342,6 +355,69 @@ fun <T> ChipRow(
     }
 }
 
+/** Ready-made colour schemes, filtered by mood. Picking one recolours the background and every text layer. */
+@Composable
+private fun PalettePicker(applied: String?, onApply: (Palette) -> Unit) {
+    var mood by rememberSaveable { mutableStateOf<PaletteMood?>(null) }
+    ChipRow(
+        options = listOf<PaletteMood?>(null) + PaletteMood.entries,
+        selected = mood,
+        label = { moodLabel(it) },
+        onSelect = { mood = it },
+    )
+    LazyRow(
+        Modifier.padding(top = 10.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        items(Palettes.of(mood), key = { it.id }) { palette ->
+            PaletteCard(palette, palette.id == applied) { onApply(palette) }
+        }
+    }
+}
+
+/** A palette as stacked colour bands, the background band largest, like a designer's swatch card. */
+@Composable
+private fun PaletteCard(palette: Palette, selected: Boolean, onClick: () -> Unit) {
+    Column(Modifier.width(72.dp).clickable(onClick = onClick)) {
+        Column(
+            Modifier
+                .height(92.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .border(if (selected) 3.dp else 1.dp, if (selected) BentuskColors.Gold else Color.White.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+        ) {
+            palette.swatches.forEachIndexed { i, swatch ->
+                Box(Modifier.fillMaxWidth().weight(if (i == 0) 2f else 1f).background(Color(swatch.argb)))
+            }
+        }
+        Text(
+            palette.name,
+            color = if (selected) BentuskColors.Gold else Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun moodLabel(mood: PaletteMood?): String = stringResource(
+    when (mood) {
+        null -> R.string.palette_all
+        PaletteMood.Bold -> R.string.palette_bold
+        PaletteMood.Pastel -> R.string.palette_pastel
+        PaletteMood.Earthy -> R.string.palette_earthy
+        PaletteMood.Luxe -> R.string.palette_luxe
+        PaletteMood.Fresh -> R.string.palette_fresh
+        PaletteMood.Moody -> R.string.palette_moody
+        PaletteMood.Retro -> R.string.palette_retro
+        PaletteMood.Neon -> R.string.palette_neon
+        PaletteMood.Classic -> R.string.palette_classic
+    },
+)
+
 @Composable
 private fun SwatchRow(fills: List<Fill>, selected: Fill, onSelect: (Fill) -> Unit) {
     Row(
@@ -372,7 +448,7 @@ private fun ColorDot(brush: Brush, selected: Boolean, onClick: () -> Unit) {
 
 /** Tools for the selected text: what it says, its typeface, colour, alignment and label. */
 @Composable
-fun TextTools(layer: TextLayer, viewModel: StudioViewModel, carousel: Boolean) {
+fun TextTools(layer: TextLayer, viewModel: StudioViewModel, carousel: Boolean, palette: Palette?) {
     Column(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp)) {
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
@@ -424,6 +500,12 @@ fun TextTools(layer: TextLayer, viewModel: StudioViewModel, carousel: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The applied palette's colours come first, then the standard ones.
+            palette?.swatches?.forEach { swatch ->
+                val c = swatch.argb
+                ColorDot(Brush.linearGradient(listOf(Color(c), Color(c))), layer.argb == c) { viewModel.updateText { it.copy(argb = c) } }
+            }
+            if (palette != null) Box(Modifier.size(width = 1.dp, height = 28.dp).background(Color.White.copy(alpha = 0.3f)))
             for (c in StudioPalette.Text) {
                 ColorDot(Brush.linearGradient(listOf(Color(c), Color(c))), layer.argb == c) { viewModel.updateText { it.copy(argb = c) } }
             }

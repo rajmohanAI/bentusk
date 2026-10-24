@@ -275,4 +275,14 @@
     <string name="reminder_on_day">%1$s, %2$s</string>
     <string name="reminder_too_soon">Pick a time at least %1$d minutes from now, or post now instead.</string>
     <string name="reminder_needs_notifications">Allow notifications to get posting reminders.</string>
+    <string name="palette_all">All</string>
+    <string name="palette_bold">Bold</string>
+    <string name="palette_pastel">Pastel</string>
+    <string name="palette_earthy">Earthy</string>
+    <string name="palette_luxe">Luxe</string>
+    <string name="palette_fresh">Fresh</string>
+    <string name="palette_moody">Moody</string>
+    <string name="palette_retro">Retro</string>
+    <string name="palette_neon">Neon</string>
+    <string name="palette_classic">Classic</string>
 </resources>

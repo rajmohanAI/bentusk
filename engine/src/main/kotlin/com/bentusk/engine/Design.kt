@@ -70,6 +70,8 @@ data class Design(
     val fill: Fill,
     val layers: List<Layer> = emptyList(),
     val templateId: String? = null,
+    /** Id of the [Palette] last applied, whose colours the text tools offer first. */
+    val palette: String? = null,
 ) {
     fun layout(): SliceLayout = when (kind) {
         TemplateKind.Carousel -> CarouselLayout(count, ratio)
