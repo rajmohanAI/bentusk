@@ -29,6 +29,7 @@ import com.bentusk.engine.Framing
 import com.bentusk.engine.FramingMath
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.Layer
+import com.bentusk.engine.Motion
 import com.bentusk.engine.NRect
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
@@ -519,6 +520,15 @@ class StudioViewModel @Inject constructor(
     }
 
     fun setText(text: String) = updateText("type") { it.copy(text = text) }
+
+    /** Steps the selected text through still, nudge and pulse. */
+    fun cycleMotion() {
+        if (_state.value.design.kind != TemplateKind.Carousel) return
+        updateText("motion") {
+            val order = listOf(null) + Motion.entries
+            it.copy(motion = order[(order.indexOf(it.motion) + 1) % order.size])
+        }
+    }
 
     fun cycleAlign() = updateText {
         it.copy(align = TextAlign.entries[(it.align.ordinal + 1) % TextAlign.entries.size])
