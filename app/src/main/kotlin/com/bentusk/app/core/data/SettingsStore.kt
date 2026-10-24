@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.bentusk.engine.CaptionLibrary
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -43,6 +45,7 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
         val InstagramConsent = booleanPreferencesKey("instagram_consent")
         val Favorites = stringSetPreferencesKey("favorite_templates")
         val KeepLineBreaks = booleanPreferencesKey("keep_line_breaks")
+        val CaptionLibrary = stringPreferencesKey("caption_library")
     }
 
     val settings: Flow<AppSettings> = context.settings.data.map { p ->
@@ -85,6 +88,15 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun setKeepLineBreaks(on: Boolean) {
         context.settings.edit { it[Keys.KeepLineBreaks] = on }
+    }
+
+    /** Hashtag sets and captions the user saved for reuse. */
+    val captionLibrary: Flow<CaptionLibrary> = context.settings.data.map { CaptionLibrary.fromJson(it[Keys.CaptionLibrary]) }
+
+    suspend fun updateCaptionLibrary(change: (CaptionLibrary) -> CaptionLibrary) {
+        context.settings.edit { p ->
+            p[Keys.CaptionLibrary] = CaptionLibrary.toJson(change(CaptionLibrary.fromJson(p[Keys.CaptionLibrary])))
+        }
     }
 
     /** Ids of templates the user starred. */

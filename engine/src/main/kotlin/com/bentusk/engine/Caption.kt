@@ -31,6 +31,29 @@ object Caption {
         }
     }
 
+    /** Adds each of [tags] that is not there yet, stopping at Instagram's hashtag limit. Tags already there stay. */
+    fun addHashtags(text: String, tags: List<String>): String =
+        tags.fold(text) { caption, tag ->
+            val normalised = "#" + tag.trimStart('#').lowercase()
+            if (normalised in hashtags(caption) || !canAddHashtag(caption)) caption else toggleHashtag(caption, normalised)
+        }
+
+    /**
+     * Puts [snippet] into the caption: on its own when the caption is empty, otherwise as a new paragraph after the
+     * words and before the hashtag line, so the tags stay last.
+     */
+    fun insertSnippet(text: String, snippet: String): String {
+        val piece = snippet.trim()
+        if (piece.isEmpty()) return text
+        val body = text.trimEnd()
+        if (body.isBlank()) return piece
+        val lastLine = body.substringAfterLast('\n')
+        val tagLine = lastLine.trim().split(Regex("""\s+""")).all { it.startsWith("#") }
+        if (!tagLine) return "$body\n\n$piece"
+        val words = body.dropLast(lastLine.length).trimEnd()
+        return if (words.isEmpty()) "$piece\n\n${lastLine.trim()}" else "$words\n\n$piece\n\n${lastLine.trim()}"
+    }
+
     fun isTooLong(text: String) = text.length > InstagramSpec.CAPTION_MAX_CHARS
 
     /** An invisible character Instagram keeps, so a line holding only it is not dropped. */

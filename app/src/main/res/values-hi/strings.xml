@@ -284,4 +284,15 @@
     <string name="palette_retro">रेट्रो</string>
     <string name="palette_neon">नियॉन</string>
     <string name="palette_classic">क्लासिक</string>
+    <string name="saved_captions">सेव किए कैप्शन</string>
+    <string name="save_caption">कैप्शन सेव करें</string>
+    <string name="saved_captions_empty">अक्सर इस्तेमाल होने वाली लाइन सेव करें, फिर उसे किसी भी पोस्ट में एक टैप में जोड़ें।</string>
+    <string name="saved_tags">★ सेव किए</string>
+    <string name="save_tags">ये हैशटैग सेव करें</string>
+    <string name="saved_tags_empty">कैप्शन में हैशटैग जोड़ें, फिर दोबारा इस्तेमाल के लिए “ये हैशटैग सेव करें” पर टैप करें।</string>
+    <string name="save_tags_title">हैशटैग सेट सेव करें</string>
+    <string name="save_caption_title">कैप्शन सेव करें</string>
+    <string name="save_name_label">नाम (वैकल्पिक)</string>
+    <string name="save">सेव करें</string>
+    <string name="remove_saved_title">“%1$s” हटाएँ?</string>
 </resources>
