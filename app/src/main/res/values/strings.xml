@@ -241,4 +241,18 @@
     <string name="text_motion">Motion</string>
     <string name="motion_nudge_hint">Nudge: slides toward the next slide. This slide exports as a %1$.1f s looping video. Tap Motion again for pulse.</string>
     <string name="motion_pulse_hint">Pulse: grows and settles. This slide exports as a %1$.1f s looping video. Tap Motion again to stop.</string>
+    <string name="planner_import">Import Instagram archive</string>
+    <string name="planner_import_title">Add your posted grid</string>
+    <string name="planner_import_body">See your plan above the posts already on your profile. In Instagram, go to Accounts Center, then Your information and permissions, then Download your information. Choose your Instagram account, the Content category, and the JSON format. When the ZIP arrives, choose it here. Carowsle reads your %1$d newest posts on this phone only and uploads nothing.</string>
+    <string name="planner_import_choose">Choose ZIP</string>
+    <string name="planner_import_none">No posts found in that ZIP. Request the download in JSON format, not HTML.</string>
+    <string name="planner_import_unreadable">Couldn\'t read that file. Choose the .zip that Instagram sent you.</string>
+    <plurals name="planner_import_done">
+        <item quantity="one">Added %d post from your archive.</item>
+        <item quantity="other">Added %d posts from your archive.</item>
+    </plurals>
+    <plurals name="planner_import_already">
+        <item quantity="one">%d was already in this plan.</item>
+        <item quantity="other">%d were already in this plan.</item>
+    </plurals>
 </resources>
