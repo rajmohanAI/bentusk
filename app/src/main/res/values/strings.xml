@@ -255,4 +255,24 @@
         <item quantity="one">%d was already in this plan.</item>
         <item quantity="other">%d were already in this plan.</item>
     </plurals>
+    <string name="reminder_channel">Posting reminders</string>
+    <string name="reminder_title">Time to post</string>
+    <plurals name="reminder_text">
+        <item quantity="one">Your post is ready: %d file saved, caption ready to paste.</item>
+        <item quantity="other">Your post is ready: %d files saved, caption ready to paste.</item>
+    </plurals>
+    <string name="reminder_all_posted">All posted</string>
+    <string name="reminder_gone">That reminder was already used or removed.</string>
+    <string name="reminder_remove">Remove reminder</string>
+    <string name="reminder_snooze">In an hour</string>
+    <string name="reminder_set_button">Remind me to post</string>
+    <string name="reminder_set_for">Reminder set: %1$s</string>
+    <string name="reminder_pick_title">When will you post?</string>
+    <string name="reminder_pick_body">You\'ll get a notification; tap it and Carowsle hands your files to Instagram with the caption ready to paste.</string>
+    <string name="reminder_pick_other">Pick another time</string>
+    <string name="reminder_today">Today, %1$s</string>
+    <string name="reminder_tomorrow">Tomorrow, %1$s</string>
+    <string name="reminder_on_day">%1$s, %2$s</string>
+    <string name="reminder_too_soon">Pick a time at least %1$d minutes from now, or post now instead.</string>
+    <string name="reminder_needs_notifications">Allow notifications to get posting reminders.</string>
 </resources>

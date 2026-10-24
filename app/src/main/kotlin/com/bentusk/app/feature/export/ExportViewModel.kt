@@ -10,10 +10,12 @@ import com.bentusk.app.core.image.ExportProgress
 import com.bentusk.app.core.image.ExportedTile
 import com.bentusk.app.core.image.SliceExporter
 import com.bentusk.app.core.image.DesignExporter
+import com.bentusk.app.core.reminder.Reminders
 import com.bentusk.app.core.storage.MediaSaver
 import com.bentusk.engine.Caption
 import com.bentusk.engine.CaptionIdeas
 import com.bentusk.engine.HashtagSets
+import com.bentusk.engine.PostReminder
 import com.bentusk.engine.TemplateKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,8 +26,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
 enum class ExportKind { Carousel, Grid, Cover }
@@ -48,6 +53,8 @@ data class ExportUiState(
     val instagramConsent: Boolean = false,
     val keepLineBreaks: Boolean = true,
     val ai: AiCaptionState = AiCaptionState(),
+    /** When the user asked to be reminded to post this export, once the reminder is set. */
+    val reminderAt: LocalDateTime? = null,
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
 
@@ -87,6 +94,7 @@ class ExportViewModel @Inject constructor(
     private val saver: MediaSaver,
     private val settings: SettingsStore,
     private val labeler: PhotoLabeler,
+    private val reminders: Reminders,
 ) : ViewModel() {
 
     /** What the exported images show, worked out once on the phone. */
@@ -174,6 +182,29 @@ class ExportViewModel @Inject constructor(
     }
 
     /** The post is finished; the next one starts with an empty caption. */
+    /** Whether a reminder notification can be shown, or the user must be asked first. */
+    fun canNotify(): Boolean = reminders.canNotify()
+
+    /** Sets a notification for [at] that brings the user back to post this export, files and caption ready. */
+    fun remind(at: LocalDateTime) {
+        val s = _state.value
+        val grid = s.kind == ExportKind.Grid
+        // A grid is posted bottom-right first, one tile at a time.
+        val uris = if (grid) s.tiles.sortedBy { it.tile.postOrder }.map { it.uri } else s.uris
+        val reminder = PostReminder(
+            id = UUID.randomUUID().toString(),
+            dueAt = at.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            uris = uris.map(Uri::toString),
+            mime = s.shareMime,
+            caption = if (s.hasCaption) s.captionToPost else "",
+            oneAtATime = grid,
+        )
+        viewModelScope.launch {
+            reminders.schedule(reminder)
+            _state.update { it.copy(reminderAt = at) }
+        }
+    }
+
     fun clearCaption() {
         session.caption = ""
     }

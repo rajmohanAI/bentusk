@@ -3,6 +3,7 @@ package com.bentusk.app.feature.export
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Alarm
+import androidx.compose.material.icons.rounded.AlarmOn
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.IosShare
@@ -65,6 +68,8 @@ import com.bentusk.app.core.storage.ShareHelper
 import com.bentusk.app.ui.components.Thumbnail
 import com.bentusk.app.ui.theme.NumericStyle
 import com.bentusk.engine.InstagramSpec
+import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Composable
 fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {
@@ -83,6 +88,23 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     LaunchedEffect(state.askForReview) { if (state.askForReview) showReview = true }
 
     var consentFor by remember { mutableStateOf<List<Uri>?>(null) }
+    var showReminderPicker by remember { mutableStateOf(false) }
+    var pendingReminder by remember { mutableStateOf<LocalDateTime?>(null) }
+    val notificationsNeeded = stringResource(R.string.reminder_needs_notifications)
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val time = pendingReminder
+        pendingReminder = null
+        if (granted && time != null) viewModel.remind(time) else Toast.makeText(context, notificationsNeeded, Toast.LENGTH_LONG).show()
+    }
+    fun setReminder(time: LocalDateTime) {
+        showReminderPicker = false
+        if (viewModel.canNotify() || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            viewModel.remind(time)
+        } else {
+            pendingReminder = time
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val captionCopied = stringResource(R.string.caption_copied)
     // Instagram cannot take a caption through a share intent, so it goes on the clipboard for a long-press paste.
     fun post(uris: List<Uri>) {
@@ -178,10 +200,17 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                             viewModel.clearCaption()
                             onDone()
                         },
+                        reminder = if (state.kind == ExportKind.Cover) null else state.reminderAt,
+                        canRemind = state.kind != ExportKind.Cover,
+                        onRemind = { showReminderPicker = true },
                     )
                 }
             }
         }
+    }
+
+    if (showReminderPicker) {
+        ReminderPicker(onPick = ::setReminder, onDismiss = { showReminderPicker = false })
     }
 
     if (state.ai.open) {
@@ -385,6 +414,9 @@ private fun Actions(
     onShare: () -> Unit,
     onShareApp: () -> Unit,
     onDone: () -> Unit,
+    reminder: LocalDateTime?,
+    canRemind: Boolean,
+    onRemind: () -> Unit,
 ) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(
@@ -413,6 +445,19 @@ private fun Actions(
                 Text(stringResource(R.string.share))
             }
             OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.done)) }
+        }
+        if (canRemind) {
+            TextButton(onClick = onRemind, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Icon(if (reminder == null) Icons.Rounded.Alarm else Icons.Rounded.AlarmOn, null)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (reminder == null) {
+                        stringResource(R.string.reminder_set_button)
+                    } else {
+                        stringResource(R.string.reminder_set_for, reminderLabel(reminder, LocalDate.now()))
+                    },
+                )
+            }
         }
         TextButton(onClick = onShareApp, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(stringResource(R.string.share_app))
