@@ -254,4 +254,24 @@
         <item quantity="one">%d पहले से इस प्लान में थी।</item>
         <item quantity="other">%d पहले से इस प्लान में थीं।</item>
     </plurals>
+    <string name="reminder_channel">पोस्ट रिमाइंडर</string>
+    <string name="reminder_title">पोस्ट करने का समय</string>
+    <plurals name="reminder_text">
+        <item quantity="one">आपकी पोस्ट तैयार है: %d फ़ाइल सेव है, कैप्शन पेस्ट के लिए तैयार है।</item>
+        <item quantity="other">आपकी पोस्ट तैयार है: %d फ़ाइलें सेव हैं, कैप्शन पेस्ट के लिए तैयार है।</item>
+    </plurals>
+    <string name="reminder_all_posted">सब पोस्ट हो गया</string>
+    <string name="reminder_gone">वह रिमाइंडर पहले ही इस्तेमाल हो चुका है या हटा दिया गया है।</string>
+    <string name="reminder_remove">रिमाइंडर हटाएँ</string>
+    <string name="reminder_snooze">एक घंटे में</string>
+    <string name="reminder_set_button">पोस्ट करने की याद दिलाएँ</string>
+    <string name="reminder_set_for">रिमाइंडर सेट: %1$s</string>
+    <string name="reminder_pick_title">आप कब पोस्ट करेंगे?</string>
+    <string name="reminder_pick_body">आपको एक नोटिफ़िकेशन मिलेगा; उस पर टैप करें और Carowsle आपकी फ़ाइलें कैप्शन के साथ Instagram को दे देगा।</string>
+    <string name="reminder_pick_other">कोई और समय चुनें</string>
+    <string name="reminder_today">आज, %1$s</string>
+    <string name="reminder_tomorrow">कल, %1$s</string>
+    <string name="reminder_on_day">%1$s, %2$s</string>
+    <string name="reminder_too_soon">अभी से कम से कम %1$d मिनट बाद का समय चुनें, या अभी पोस्ट करें।</string>
+    <string name="reminder_needs_notifications">पोस्ट रिमाइंडर पाने के लिए नोटिफ़िकेशन की अनुमति दें।</string>
 </resources>

@@ -113,6 +113,7 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.work.runtime)
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.coroutines.android)
