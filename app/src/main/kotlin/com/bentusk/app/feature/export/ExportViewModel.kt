@@ -14,8 +14,11 @@ import com.bentusk.app.core.reminder.Reminders
 import com.bentusk.app.core.storage.MediaSaver
 import com.bentusk.engine.Caption
 import com.bentusk.engine.CaptionIdeas
+import com.bentusk.engine.CaptionLibrary
 import com.bentusk.engine.HashtagSets
 import com.bentusk.engine.PostReminder
+import com.bentusk.engine.SavedCaption
+import com.bentusk.engine.SavedTags
 import com.bentusk.engine.TemplateKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -55,6 +58,8 @@ data class ExportUiState(
     val ai: AiCaptionState = AiCaptionState(),
     /** When the user asked to be reminded to post this export, once the reminder is set. */
     val reminderAt: LocalDateTime? = null,
+    /** The user's saved hashtag sets and captions. */
+    val library: CaptionLibrary = CaptionLibrary(),
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
 
@@ -112,6 +117,7 @@ class ExportViewModel @Inject constructor(
                 _state.update { it.copy(instagramConsent = s.instagramConsent, keepLineBreaks = s.keepLineBreaks) }
             }
         }
+        viewModelScope.launch { settings.captionLibrary.collect { l -> _state.update { it.copy(library = l) } } }
         if (saver.needsLegacyPermission) _state.update { it.copy(needsPermission = true) } else start()
     }
 
@@ -214,6 +220,30 @@ class ExportViewModel @Inject constructor(
     }
 
     fun toggleHashtag(tag: String) = setCaption(Caption.toggleHashtag(_state.value.caption, tag))
+
+    /** Saves the caption's current hashtags as a set; a blank [name] is made from the tags. */
+    fun saveTags(name: String) {
+        val tags = _state.value.hashtags
+        viewModelScope.launch { settings.updateCaptionLibrary { it.saveTags(name, tags, System.currentTimeMillis()) } }
+    }
+
+    /** Saves the caption as it stands for reuse; a blank [name] is made from its first line. */
+    fun saveCaption(name: String) {
+        val text = _state.value.caption
+        viewModelScope.launch { settings.updateCaptionLibrary { it.saveCaption(name, text, System.currentTimeMillis()) } }
+    }
+
+    fun useTags(set: SavedTags) = setCaption(Caption.addHashtags(_state.value.caption, set.tags))
+
+    fun useCaption(saved: SavedCaption) = setCaption(Caption.insertSnippet(_state.value.caption, saved.text))
+
+    fun removeTags(set: SavedTags) {
+        viewModelScope.launch { settings.updateCaptionLibrary { it.removeTags(set.id) } }
+    }
+
+    fun removeCaption(saved: SavedCaption) {
+        viewModelScope.launch { settings.updateCaptionLibrary { it.removeCaption(saved.id) } }
+    }
 
     fun grantInstagramConsent() {
         viewModelScope.launch { settings.setInstagramConsent(true) }
