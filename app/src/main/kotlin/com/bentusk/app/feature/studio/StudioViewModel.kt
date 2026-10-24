@@ -31,6 +31,8 @@ import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.Layer
 import com.bentusk.engine.Motion
 import com.bentusk.engine.NRect
+import com.bentusk.engine.Palette
+import com.bentusk.engine.Palettes
 import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
@@ -576,6 +578,8 @@ class StudioViewModel @Inject constructor(
     }
 
     fun setFill(fill: Fill) = commit(_state.value.design.copy(fill = fill), key = "fill")
+
+    fun applyPalette(palette: Palette) = commit(Palettes.apply(_state.value.design, palette))
 
     fun setFormat(format: ExportFormat) {
         if (format == ExportFormat.Png && !_state.value.allows(ProFeature.PngExport)) {
