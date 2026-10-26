@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Panorama
 import androidx.compose.material.icons.rounded.Rotate90DegreesCw
 import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.ViewModule
@@ -93,6 +94,7 @@ import com.bentusk.engine.PhotoLayer
 import com.bentusk.engine.Plans
 import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
+import com.bentusk.engine.RetroStyle
 import com.bentusk.engine.StickerPlacement
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextAlign
@@ -636,6 +638,7 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean,
                 )
             }
         }
+        if (layer.uri != null && layer.video == null) RetroTools(layer, viewModel)
         Text(
             stringResource(if (layer.free) R.string.free_photo_hint else R.string.template_gesture_hint),
             color = Color.White.copy(alpha = 0.6f),
@@ -644,6 +647,56 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean,
         )
     }
 }
+
+/** Film looks for the selected photo: a style, how strong it is, and an optional date stamp. */
+@Composable
+private fun RetroTools(layer: PhotoLayer, viewModel: StudioViewModel) {
+    val look = layer.look
+    Text(
+        stringResource(R.string.retro),
+        color = Color.White,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 6.dp),
+    )
+    ChipRow(
+        options = listOf<RetroStyle?>(null) + RetroStyle.entries,
+        selected = look?.style,
+        label = { retroLabel(it) },
+        onSelect = viewModel::setLook,
+    )
+    if (look != null) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.retro_strength), color = Color.White, style = MaterialTheme.typography.labelLarge)
+            Slider(
+                value = look.strength.toFloat(),
+                onValueChange = { viewModel.setLookStrength(it.toDouble()) },
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.25f),
+                ),
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+            )
+            SmallIcon(Icons.Rounded.Today, R.string.date_stamp, active = look.stamp != null, onClick = viewModel::toggleStamp)
+        }
+    }
+}
+
+@Composable
+private fun retroLabel(style: RetroStyle?): String = stringResource(
+    when (style) {
+        null -> R.string.retro_none
+        RetroStyle.Seventies -> R.string.retro_seventies
+        RetroStyle.SlideFilm -> R.string.retro_slide_film
+        RetroStyle.Instant -> R.string.retro_instant
+        RetroStyle.Disposable -> R.string.retro_disposable
+        RetroStyle.Sepia -> R.string.retro_sepia
+        RetroStyle.Noir -> R.string.retro_noir
+        RetroStyle.Faded -> R.string.retro_faded
+        RetroStyle.Cross -> R.string.retro_cross
+        RetroStyle.HomeMovie -> R.string.retro_home_movie
+    },
+)
 
 /** Tools for the selected video clip: trim, sound and framing. */
 @Composable

@@ -37,6 +37,8 @@ data class PhotoLayer(
     val free: Boolean = false,
     /** Set when [uri] is a video clip; the layer then fills one whole slide and exports as a video. */
     val video: VideoClip? = null,
+    /** A retro film look drawn over the photo, or null for the photo as shot. Not used on video clips. */
+    val look: Look? = null,
 ) : Layer
 
 /** Text wrapped to the width of [rect] and centred in it vertically. */
