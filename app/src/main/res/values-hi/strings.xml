@@ -302,6 +302,7 @@
     <string name="zoom">ज़ूम</string>
     <string name="span_slides">सभी स्लाइड पर</string>
     <string name="retro">रेट्रो फ़िल्म लुक</string>
+    <string name="retro_short">रेट्रो</string>
     <string name="retro_none">कोई नहीं</string>
     <string name="retro_seventies">70 का दशक</string>
     <string name="retro_slide_film">स्लाइड फ़िल्म</string>
@@ -314,4 +315,17 @@
     <string name="retro_home_movie">होम मूवी</string>
     <string name="retro_strength">तीव्रता</string>
     <string name="date_stamp">तारीख़ की मुहर</string>
+    <string name="studio_shot">स्टूडियो शॉट</string>
+    <string name="studio_shot_hint">आपके फ़ोन पर ही प्रोडक्ट या व्यक्ति को काटकर स्टूडियो बैकड्रॉप पर रखता है। अनडू से मूल फ़ोटो वापस आती है।</string>
+    <string name="studio_shot_no_subject">इस फ़ोटो में कोई प्रोडक्ट या व्यक्ति नहीं मिला</string>
+    <string name="studio_shot_failed">इस फ़ोन पर स्टूडियो शॉट अभी तैयार नहीं है। एक मिनट बाद फिर कोशिश करें।</string>
+    <string name="backdrop_white">सफ़ेद</string>
+    <string name="backdrop_grey">ग्रे</string>
+    <string name="backdrop_paper">पेपर</string>
+    <string name="backdrop_blush">ब्लश</string>
+    <string name="backdrop_sage">सेज</string>
+    <string name="backdrop_sky">आसमानी</string>
+    <string name="backdrop_sunset">सूर्यास्त</string>
+    <string name="backdrop_charcoal">चारकोल</string>
+    <string name="backdrop_midnight">मिडनाइट</string>
 </resources>

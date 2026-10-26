@@ -303,6 +303,7 @@
     <string name="zoom">Zoom</string>
     <string name="span_slides">Across slides</string>
     <string name="retro">Retro film look</string>
+    <string name="retro_short">Retro</string>
     <string name="retro_none">None</string>
     <string name="retro_seventies">70s</string>
     <string name="retro_slide_film">Slide film</string>
@@ -315,4 +316,17 @@
     <string name="retro_home_movie">Home movie</string>
     <string name="retro_strength">Strength</string>
     <string name="date_stamp">Date stamp</string>
+    <string name="studio_shot">Studio shot</string>
+    <string name="studio_shot_hint">Cuts out the product or person on your phone and puts it on a studio backdrop. Undo brings the original back.</string>
+    <string name="studio_shot_no_subject">No product or person found in this photo</string>
+    <string name="studio_shot_failed">Studio shot isn\'t ready on this phone yet. Try again in a minute.</string>
+    <string name="backdrop_white">White</string>
+    <string name="backdrop_grey">Grey</string>
+    <string name="backdrop_paper">Paper</string>
+    <string name="backdrop_blush">Blush</string>
+    <string name="backdrop_sage">Sage</string>
+    <string name="backdrop_sky">Sky</string>
+    <string name="backdrop_sunset">Sunset</string>
+    <string name="backdrop_charcoal">Charcoal</string>
+    <string name="backdrop_midnight">Midnight</string>
 </resources>

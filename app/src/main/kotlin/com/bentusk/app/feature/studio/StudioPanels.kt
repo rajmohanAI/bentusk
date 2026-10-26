@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.CropFree
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FilterVintage
 import androidx.compose.material.icons.rounded.FitScreen
 import androidx.compose.material.icons.rounded.FlipToBack
 import androidx.compose.material.icons.rounded.FlipToFront
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Wallpaper
+import androidx.compose.material.icons.rounded.WbIncandescent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -96,6 +98,7 @@ import com.bentusk.engine.PostRatio
 import com.bentusk.engine.ProFeature
 import com.bentusk.engine.RetroStyle
 import com.bentusk.engine.StickerPlacement
+import com.bentusk.engine.StudioShot
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextAlign
 import com.bentusk.engine.TextFont
@@ -594,6 +597,9 @@ fun TextFont.family(): FontFamily = when (this) {
 /** Tools for the selected photo. */
 @Composable
 fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean, onReplace: () -> Unit) {
+    // Studio shot and Retro open one at a time, so the photo above keeps most of the screen.
+    var extra by rememberSaveable { mutableStateOf<PhotoExtra?>(null) }
+    val canStyle = layer.uri != null && layer.video == null
     Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
             Modifier
@@ -613,6 +619,14 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean,
                 ToolButton(Icons.Rounded.CenterFocusStrong, stringResource(R.string.fill_frame), onClick = viewModel::fillSelected)
                 if (carousel && layer.rect != FULL_CANVAS) {
                     ToolButton(Icons.Rounded.Panorama, stringResource(R.string.span_slides), onClick = viewModel::spanSelected)
+                }
+            }
+            if (canStyle) {
+                ToolButton(Icons.Rounded.WbIncandescent, stringResource(R.string.studio_shot), extra == PhotoExtra.Studio) {
+                    extra = if (extra == PhotoExtra.Studio) null else PhotoExtra.Studio
+                }
+                ToolButton(Icons.Rounded.FilterVintage, stringResource(R.string.retro_short), extra == PhotoExtra.Retro) {
+                    extra = if (extra == PhotoExtra.Retro) null else PhotoExtra.Retro
                 }
             }
             ToolButton(Icons.Rounded.FlipToFront, stringResource(R.string.bring_forward)) { viewModel.restack(layer.id, true) }
@@ -638,7 +652,13 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean,
                 )
             }
         }
-        if (layer.uri != null && layer.video == null) RetroTools(layer, viewModel)
+        if (canStyle) {
+            when (extra) {
+                PhotoExtra.Studio -> StudioShotTools(viewModel)
+                PhotoExtra.Retro -> RetroTools(layer, viewModel)
+                null -> Unit
+            }
+        }
         Text(
             stringResource(if (layer.free) R.string.free_photo_hint else R.string.template_gesture_hint),
             color = Color.White.copy(alpha = 0.6f),
@@ -647,6 +667,64 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean,
         )
     }
 }
+
+private enum class PhotoExtra { Studio, Retro }
+
+/** Backdrops for a studio shot: tapping one cuts out the product or person and puts it on that backdrop. */
+@Composable
+private fun StudioShotTools(viewModel: StudioViewModel) {
+    Text(
+        stringResource(R.string.studio_shot),
+        color = Color.White,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(start = 16.dp, top = 8.dp),
+    )
+    Text(
+        stringResource(R.string.studio_shot_hint),
+        color = Color.White.copy(alpha = 0.6f),
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
+    )
+    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(StudioShot.Backdrops, key = { it.id }) { backdrop ->
+            Column(
+                Modifier.width(64.dp).clip(RoundedCornerShape(10.dp)).clickable { viewModel.studioShot(backdrop) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Brush.verticalGradient(listOf(Color(backdrop.top), Color(backdrop.bottom))))
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+                )
+                Text(
+                    backdropLabel(backdrop.id),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun backdropLabel(id: String): String = stringResource(
+    when (id) {
+        "white" -> R.string.backdrop_white
+        "grey" -> R.string.backdrop_grey
+        "paper" -> R.string.backdrop_paper
+        "blush" -> R.string.backdrop_blush
+        "sage" -> R.string.backdrop_sage
+        "sky" -> R.string.backdrop_sky
+        "sunset" -> R.string.backdrop_sunset
+        "charcoal" -> R.string.backdrop_charcoal
+        else -> R.string.backdrop_midnight
+    },
+)
 
 /** Film looks for the selected photo: a style, how strong it is, and an optional date stamp. */
 @Composable
