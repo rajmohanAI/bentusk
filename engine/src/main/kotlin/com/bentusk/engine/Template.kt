@@ -46,7 +46,13 @@ data class TextSlot(
     val pill: Int? = null,
 )
 
-enum class TemplateKind { Carousel, Grid }
+enum class TemplateKind {
+    Carousel,
+    Grid,
+
+    /** One full-screen 9:16 picture: a Reel cover or a story. */
+    Story,
+}
 
 data class Template(
     val id: String,
@@ -69,6 +75,7 @@ data class Template(
     fun layout(ratio: PostRatio = this.ratio): SliceLayout = when (kind) {
         TemplateKind.Carousel -> CarouselLayout(count, ratio)
         TemplateKind.Grid -> GridLayout(count, ratio)
+        TemplateKind.Story -> StoryLayout
     }
 
     /** Pixel rect of photo slot [index] on the canvas of [layout]. */

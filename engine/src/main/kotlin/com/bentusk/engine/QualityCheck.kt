@@ -77,7 +77,7 @@ object QualityCheck {
                     if (layer.text.isBlank()) continue
                     val points = textPoints(layer, layout)
                     if (points < MIN_TEXT_POINTS) issues += QualityIssue(IssueKind.SmallText, layer.id, home, points)
-                    val covered = coveredTile(layer, rect, layout, carousel)
+                    val covered = coveredTile(layer, rect, layout, carousel, story = design.kind == TemplateKind.Story)
                     if (covered != null) issues += QualityIssue(IssueKind.UnderIcons, layer.id, covered)
                 }
             }
@@ -97,7 +97,7 @@ object QualityCheck {
      * The first tile where [layer]'s text sits under one of Instagram's icons, or null. Only the band the lines
      * actually fill counts, since text is centred vertically in a box that is often taller than the words.
      */
-    private fun coveredTile(layer: TextLayer, rect: PxRect, layout: SliceLayout, carousel: Boolean): Int? {
+    private fun coveredTile(layer: TextLayer, rect: PxRect, layout: SliceLayout, carousel: Boolean, story: Boolean): Int? {
         val lines = max(1, layer.text.trimEnd().lines().size)
         val textHeight = min(rect.height.toDouble(), lines * layer.size * layout.tileSize.height * LINE_HEIGHT)
         val mid = (rect.top + rect.bottom) / 2.0
@@ -105,7 +105,7 @@ object QualityCheck {
         val bottom = mid + textHeight / 2
         for (tile in layout.tiles) {
             val t = tile.rect
-            val zones = SafeZones.overlays(t.width.toDouble() / t.height, carousel)
+            val zones = if (story) SafeZones.story() else SafeZones.overlays(t.width.toDouble() / t.height, carousel)
             for (zone in zones) {
                 val z = zone.rect
                 val zl = t.left + z.left * t.width

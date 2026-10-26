@@ -36,7 +36,7 @@ import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
-enum class ExportKind { Carousel, Grid, Cover }
+enum class ExportKind { Carousel, Grid, Cover, Story }
 
 data class ExportUiState(
     val kind: ExportKind = ExportKind.Carousel,
@@ -72,7 +72,7 @@ data class ExportUiState(
         }
 
     /** Posts that go on the feed get a caption; covers are only used inside highlights. */
-    val hasCaption: Boolean get() = kind != ExportKind.Cover
+    val hasCaption: Boolean get() = kind != ExportKind.Cover && kind != ExportKind.Story
 
     val hashtags: List<String> get() = Caption.hashtags(caption)
 
@@ -274,7 +274,11 @@ class ExportViewModel @Inject constructor(
                         collect(exporter.export(slice))
                     }
                     design != null -> {
-                        val kind = if (design.design.kind == TemplateKind.Grid) ExportKind.Grid else ExportKind.Carousel
+                        val kind = when (design.design.kind) {
+                            TemplateKind.Grid -> ExportKind.Grid
+                            TemplateKind.Story -> ExportKind.Story
+                            TemplateKind.Carousel -> ExportKind.Carousel
+                        }
                         _state.update { it.copy(kind = kind, format = design.format, total = design.design.layout().count) }
                         collect(designExporter.export(design))
                     }

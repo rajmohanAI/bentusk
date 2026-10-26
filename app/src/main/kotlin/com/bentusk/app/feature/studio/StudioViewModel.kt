@@ -159,6 +159,8 @@ class StudioViewModel @Inject constructor(
 
     private fun blank(kind: String?): Design = when (kind?.let(TemplateKind::valueOf)) {
         TemplateKind.Grid -> Design.blank(TemplateKind.Grid, 3, PostRatio.GridDefault)
+        // The ratio is unused: a story is always 9:16.
+        TemplateKind.Story -> Design.blank(TemplateKind.Story, 1, PostRatio.Portrait)
         else -> Design.blank(TemplateKind.Carousel, 3, PostRatio.CarouselDefault)
     }
 
@@ -363,7 +365,9 @@ class StudioViewModel @Inject constructor(
             val key = uri.toString()
             val photo = ensureLoaded(key) ?: continue
             val selected = (design.layer(_state.value.selected ?: -1) as? PhotoLayer)?.takeIf { it.uri == null && !it.free }
-            val empty = selected ?: design.photos.firstOrNull { it.uri == null && !it.free }
+            val empty = selected ?: design.photos.firstOrNull { it.uri == null && !it.free } ?: storyBackdrop(design)?.also {
+                design = design.copy(layers = listOf(it) + design.layers)
+            }
             design = if (empty != null) {
                 design.replace(empty.copy(uri = key, framing = Framing.Default))
             } else {
@@ -377,6 +381,10 @@ class StudioViewModel @Inject constructor(
         if (record) commit(design) else setDesign(design)
         _state.update { it.copy(busy = false) }
     }
+
+    /** A story's first photo fills the screen behind everything else, as a Reel cover or story photo does. */
+    private fun storyBackdrop(design: Design): PhotoLayer? =
+        if (design.kind == TemplateKind.Story && design.photos.isEmpty()) PhotoLayer(design.nextId(), NRect(0.0, 0.0, 1.0, 1.0)) else null
 
     /** Puts [uri] in the selected photo layer, or the first empty slot. */
     fun replacePhoto(uri: Uri) {

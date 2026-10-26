@@ -193,6 +193,7 @@ fun StudioScreen(
                     SafeZoneLegend(
                         Modifier.align(Alignment.TopCenter).padding(top = 2.dp),
                         textColor = Color.White.copy(alpha = 0.8f),
+                        square = state.design.kind != TemplateKind.Story,
                     )
                 }
             }

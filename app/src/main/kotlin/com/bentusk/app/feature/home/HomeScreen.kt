@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Panorama
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.TripOrigin
 import androidx.compose.material.icons.rounded.ViewCarousel
@@ -241,6 +242,7 @@ fun HomeScreen(
                         onPanorama = { pickCarousel.launch(imagesOnly) },
                         onCovers = onOpenCovers,
                         onBlank = { onOpenStudio(StudioRoute(kind = TemplateKind.Carousel.name)) },
+                        onStory = { onOpenStudio(StudioRoute(kind = TemplateKind.Story.name)) },
                     )
                     HomeTab.Grid -> GridTab(
                         query = query,
@@ -277,6 +279,10 @@ fun HomeScreen(
                 CreateOption(Icons.Rounded.ViewModule, R.string.create_blank_grid, R.string.create_blank_grid_body) {
                     showCreate = false
                     onOpenStudio(StudioRoute(kind = TemplateKind.Grid.name))
+                }
+                CreateOption(Icons.Rounded.PhoneAndroid, R.string.create_story, R.string.create_story_body) {
+                    showCreate = false
+                    onOpenStudio(StudioRoute(kind = TemplateKind.Story.name))
                 }
                 CreateOption(Icons.Rounded.Panorama, R.string.tool_carousel, R.string.tool_carousel_body) {
                     showCreate = false
@@ -380,6 +386,7 @@ private fun CarouselTab(
     onPanorama: () -> Unit,
     onCovers: () -> Unit,
     onBlank: () -> Unit,
+    onStory: () -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
         if (query.isBlank()) {
@@ -388,6 +395,7 @@ private fun CarouselTab(
                     listOf(
                         QuickTool(Icons.Rounded.Add, R.string.create_blank_carousel, onBlank),
                         QuickTool(Icons.Rounded.Panorama, R.string.tool_carousel, onPanorama),
+                        QuickTool(Icons.Rounded.PhoneAndroid, R.string.create_story, onStory),
                         QuickTool(Icons.Rounded.TripOrigin, R.string.tool_covers, onCovers),
                     ),
                 )
@@ -504,7 +512,13 @@ private fun ProjectsTab(projects: List<Project>, onOpen: (Project) -> Unit, onDe
                             thumb?.let { Image(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
                         }
                         val name = p.design.templateId?.let { Templates.byId(it)?.name }
-                            ?: stringResource(if (p.design.kind == TemplateKind.Carousel) R.string.create_blank_carousel else R.string.create_blank_grid)
+                            ?: stringResource(
+                                when (p.design.kind) {
+                                    TemplateKind.Carousel -> R.string.create_blank_carousel
+                                    TemplateKind.Grid -> R.string.create_blank_grid
+                                    TemplateKind.Story -> R.string.create_story
+                                },
+                            )
                         Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, modifier = Modifier.padding(top = 8.dp))
                         Text(
                             DateUtils.getRelativeTimeSpanString(p.updatedAt).toString(),
