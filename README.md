@@ -22,6 +22,7 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Caption line breaks | Blank lines are copied with an invisible character so Instagram keeps paragraph spacing (can be turned off) |
 | Saved captions and hashtags | Save a caption line (a sign-off, shop details) or the hashtags you just used under a name, then add them to any later post in one tap; saved lines go before the hashtag line and sets respect the 5-hashtag limit. Stored on the phone only |
 | Reel covers and stories | A blank 9:16 design (Create → Reel cover or story): the first photo fills the screen, and safe zones show the centred 3:4 the profile grid keeps of a Reel cover plus where the caption, reply bar and Reel buttons sit; the export check flags text under them |
+| Photos fill slides | In a blank carousel or grid each picked photo gets a slide or tile of its own (adding slides or rows as needed), framed to fill it; pinch or use the Zoom slider to crop, and "Across slides" stretches one wide photo over every slide for a seamless panorama |
 
 ## Plans
 

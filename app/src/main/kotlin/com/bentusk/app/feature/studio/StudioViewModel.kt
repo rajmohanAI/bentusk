@@ -355,7 +355,10 @@ class StudioViewModel @Inject constructor(
         viewModelScope.launch { placePhotos(uris, record = true) }
     }
 
-    /** Fills empty slots first (the selected one before others), then adds the rest as free photos on this slide. */
+    /**
+     * Fills empty slots first (the selected one before others). On a blank design each further photo then gets a
+     * slide or tile of its own, adding slides or rows as needed, and only the rest become free photos on this slide.
+     */
     private suspend fun placePhotos(uris: List<Uri>, record: Boolean) {
         _state.update { it.copy(busy = true, panel = StudioPanel.None) }
         var design = _state.value.design
@@ -368,8 +371,11 @@ class StudioViewModel @Inject constructor(
             val empty = selected ?: design.photos.firstOrNull { it.uri == null && !it.free } ?: storyBackdrop(design)?.also {
                 design = design.copy(layers = listOf(it) + design.layers)
             }
+            val tiled = if (empty == null) intoEmptyTile(design, key) else null
             design = if (empty != null) {
                 design.replace(empty.copy(uri = key, framing = Framing.Default))
+            } else if (tiled != null) {
+                tiled
             } else {
                 // Each extra photo lands a little lower and to the right, so none hides another completely.
                 val rect = Design.freePhotoRect(design, _state.value.page, photo.geometry.upright.aspect)
@@ -380,6 +386,23 @@ class StudioViewModel @Inject constructor(
         }
         if (record) commit(design) else setDesign(design)
         _state.update { it.copy(busy = false) }
+    }
+
+    /**
+     * Puts [key] in a photo slot filling the next slide or tile without a photo, adding a slide or row when all
+     * are taken. Only blank designs do this: a template's layout is the designer's, so extras there stay free.
+     */
+    private fun intoEmptyTile(design: Design, key: String): Design? {
+        if (design.templateId != null || design.kind == TemplateKind.Story) return null
+        val s = _state.value
+        val maxSlides = if (s.allows(ProFeature.LongCarousel)) InstagramSpec.MAX_CAROUSEL_SLIDES else Plans.FREE_MAX_SLIDES
+        var d = design
+        var tile = d.emptyTile(s.page)
+        if (tile == null) {
+            d = d.grown(maxSlides)?.let(::reframe) ?: return null
+            tile = d.emptyTile(s.page) ?: return null
+        }
+        return d.withTileSlot(tile, PhotoLayer(d.nextId(), d.tileRect(tile), uri = key))
     }
 
     /** A story's first photo fills the screen behind everything else, as a Reel cover or story photo does. */
@@ -426,7 +449,7 @@ class StudioViewModel @Inject constructor(
         return NRect(left, top, left + width, top + h)
     }
 
-    fun adjustSelected(change: (Framing) -> Framing) {
+    fun adjustSelected(key: String? = null, change: (Framing) -> Framing) {
         val s = _state.value
         val layer = s.selectedLayer as? PhotoLayer ?: return
         val loaded = layer.uri?.let { s.loaded[it] } ?: return
@@ -434,7 +457,22 @@ class StudioViewModel @Inject constructor(
         val framing = change(layer.framing).let {
             if (layer.video != null) VideoSlides.clamp(loaded.geometry.upright, slot.size, it) else FramingMath.clamp(loaded.geometry.upright, slot.size, it)
         }
-        commit(s.design.replace(layer.copy(framing = framing)))
+        commit(s.design.replace(layer.copy(framing = framing)), key)
+    }
+
+    /** Zooms the selected photo inside its frame about the frame's centre; a drag of the slider is one undo step. */
+    fun setZoom(zoom: Double) = adjustSelected("zoom") { f -> Framing(f.rotationDegrees, zoom, f.offset * (zoom / f.zoom)) }
+
+    /**
+     * Stretches the selected photo across every slide of a carousel, so one wide picture flows from slide to slide
+     * when swiped. It goes to the bottom of the stack, so other photos and text stay on top.
+     */
+    fun spanSelected() {
+        val s = _state.value
+        val layer = s.selectedLayer as? PhotoLayer ?: return
+        if (s.design.kind != TemplateKind.Carousel || layer.free || layer.video != null) return
+        val spanned = layer.copy(rect = NRect(0.0, 0.0, 1.0, 1.0), framing = Framing.Default)
+        commit(s.design.copy(layers = listOf(spanned) + s.design.layers.filterNot { it.id == layer.id }))
     }
 
     fun rotateSelected() = adjustSelected { it.copy(rotationDegrees = Math.round(it.rotationDegrees / 90.0) * 90.0 + 90.0) }

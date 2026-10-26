@@ -300,4 +300,6 @@
     <string name="create_story_body">A full-screen 9:16 design, with guides for the 3:4 grid crop and Instagram\'s buttons.</string>
     <string name="story_post_hint">Share it as a story, or use it as your Reel\'s cover: in Instagram tap Edit cover, then Add from camera roll.</string>
     <string name="check_on_story">On the screen</string>
+    <string name="zoom">Zoom</string>
+    <string name="span_slides">Across slides</string>
 </resources>

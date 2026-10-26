@@ -106,6 +106,37 @@ data class Design(
         return NRect(r.left / c.width.toDouble(), r.top / c.height.toDouble(), r.right / c.width.toDouble(), r.bottom / c.height.toDouble())
     }
 
+    /**
+     * The first slide or tile, looking from [from] onwards and then from the start, that no photo covers yet,
+     * or null when every one has a photo. A tile counts as covered when a photo sits over its centre.
+     */
+    fun emptyTile(from: Int = 0): Int? {
+        val layout = layout()
+        val start = from.coerceIn(0, layout.count - 1)
+        val order = (start until layout.count) + (0 until start)
+        return order.firstOrNull { i ->
+            val t = layout.tiles[i].rect
+            val cx = (t.left + t.right) / 2
+            val cy = (t.top + t.bottom) / 2
+            photos.none { rectPx(it, layout).contains(cx, cy) }
+        }
+    }
+
+    /** Adds a photo slot filling tile [index], under any text and stickers so they stay on top. */
+    fun withTileSlot(index: Int, slot: PhotoLayer): Design {
+        val placed = slot.copy(rect = tileRect(index), free = false)
+        val firstText = layers.indexOfFirst { it is TextLayer }
+        val at = if (firstText < 0) layers.size else firstText
+        return copy(layers = layers.subList(0, at) + placed + layers.subList(at, layers.size))
+    }
+
+    /** One more slide or row, when the post can take it, or null. Stories never grow. */
+    fun grown(maxSlides: Int = InstagramSpec.MAX_CAROUSEL_SLIDES): Design? = when (kind) {
+        TemplateKind.Carousel -> if (count < maxSlides) withCount(count + 1) else null
+        TemplateKind.Grid -> if (count < InstagramSpec.MAX_GRID_ROWS) withCount(count + 1) else null
+        TemplateKind.Story -> null
+    }
+
     fun replace(layer: Layer): Design = copy(layers = layers.map { if (it.id == layer.id) layer else it })
 
     fun remove(id: Long): Design = copy(layers = layers.filterNot { it.id == id })
