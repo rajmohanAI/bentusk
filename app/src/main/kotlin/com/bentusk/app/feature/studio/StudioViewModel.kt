@@ -29,6 +29,7 @@ import com.bentusk.engine.Framing
 import com.bentusk.engine.FramingMath
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.Layer
+import com.bentusk.engine.Look
 import com.bentusk.engine.Motion
 import com.bentusk.engine.NRect
 import com.bentusk.engine.Palette
@@ -40,6 +41,8 @@ import com.bentusk.engine.ProFeature
 import com.bentusk.engine.PxSize
 import com.bentusk.engine.QualityCheck
 import com.bentusk.engine.QualityIssue
+import com.bentusk.engine.Retro
+import com.bentusk.engine.RetroStyle
 import com.bentusk.engine.SliceLayout
 import com.bentusk.engine.SourceGeometry
 import com.bentusk.engine.StickerPlacement
@@ -66,6 +69,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -473,6 +477,26 @@ class StudioViewModel @Inject constructor(
         if (s.design.kind != TemplateKind.Carousel || layer.free || layer.video != null) return
         val spanned = layer.copy(rect = NRect(0.0, 0.0, 1.0, 1.0), framing = Framing.Default)
         commit(s.design.copy(layers = listOf(spanned) + s.design.layers.filterNot { it.id == layer.id }))
+    }
+
+    // Retro
+
+    private fun changeLook(key: String? = null, change: (Look?) -> Look?) {
+        val s = _state.value
+        val layer = s.selectedLayer as? PhotoLayer ?: return
+        if (layer.uri == null || layer.video != null) return
+        commit(s.design.replace(layer.copy(look = change(layer.look))), key)
+    }
+
+    /** Puts a film look on the selected photo, keeping its strength and date stamp; null takes the look off. */
+    fun setLook(style: RetroStyle?) = changeLook { old -> style?.let { Look(it, old?.strength ?: 1.0, old?.stamp) } }
+
+    fun setLookStrength(strength: Double) = changeLook("look") { it?.copy(strength = strength.coerceIn(0.0, 1.0)) }
+
+    /** Adds or removes an orange date stamp with today's date, like a 90s film camera. */
+    fun toggleStamp() = changeLook { look ->
+        val today = LocalDate.now()
+        look?.copy(stamp = if (look.stamp == null) Retro.stamp(today.year, today.monthValue, today.dayOfMonth) else null)
     }
 
     fun rotateSelected() = adjustSelected { it.copy(rotationDegrees = Math.round(it.rotationDegrees / 90.0) * 90.0 + 90.0) }

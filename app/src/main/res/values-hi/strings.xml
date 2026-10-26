@@ -301,4 +301,17 @@
     <string name="check_on_story">स्क्रीन पर</string>
     <string name="zoom">ज़ूम</string>
     <string name="span_slides">सभी स्लाइड पर</string>
+    <string name="retro">रेट्रो फ़िल्म लुक</string>
+    <string name="retro_none">कोई नहीं</string>
+    <string name="retro_seventies">70 का दशक</string>
+    <string name="retro_slide_film">स्लाइड फ़िल्म</string>
+    <string name="retro_instant">इंस्टेंट</string>
+    <string name="retro_disposable">90 का डिस्पोज़ेबल</string>
+    <string name="retro_sepia">सीपिया</string>
+    <string name="retro_noir">ब्लैक एंड व्हाइट</string>
+    <string name="retro_faded">फीका</string>
+    <string name="retro_cross">क्रॉस प्रोसेस</string>
+    <string name="retro_home_movie">होम मूवी</string>
+    <string name="retro_strength">तीव्रता</string>
+    <string name="date_stamp">तारीख़ की मुहर</string>
 </resources>

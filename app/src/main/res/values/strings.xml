@@ -302,4 +302,17 @@
     <string name="check_on_story">On the screen</string>
     <string name="zoom">Zoom</string>
     <string name="span_slides">Across slides</string>
+    <string name="retro">Retro film look</string>
+    <string name="retro_none">None</string>
+    <string name="retro_seventies">70s</string>
+    <string name="retro_slide_film">Slide film</string>
+    <string name="retro_instant">Instant</string>
+    <string name="retro_disposable">90s disposable</string>
+    <string name="retro_sepia">Sepia</string>
+    <string name="retro_noir">Black &amp; white</string>
+    <string name="retro_faded">Faded</string>
+    <string name="retro_cross">Cross process</string>
+    <string name="retro_home_movie">Home movie</string>
+    <string name="retro_strength">Strength</string>
+    <string name="date_stamp">Date stamp</string>
 </resources>
