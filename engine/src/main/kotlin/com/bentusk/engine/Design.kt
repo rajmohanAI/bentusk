@@ -76,6 +76,7 @@ data class Design(
     fun layout(): SliceLayout = when (kind) {
         TemplateKind.Carousel -> CarouselLayout(count, ratio)
         TemplateKind.Grid -> GridLayout(count, ratio)
+        TemplateKind.Story -> StoryLayout
     }
 
     val photos: List<PhotoLayer> get() = layers.filterIsInstance<PhotoLayer>()
@@ -127,13 +128,14 @@ data class Design(
      * Layers that no longer fit are dropped; those cut by the new edge are trimmed.
      */
     fun withCount(newCount: Int): Design {
-        if (newCount == count) return this
+        if (newCount == count || kind == TemplateKind.Story) return this
         val k = count.toDouble() / newCount
         val moved = layers.mapNotNull { layer ->
             val r = layer.rect
             val scaled = when (kind) {
                 TemplateKind.Carousel -> Box(r.left * k, r.top, min(1.0, r.right * k), r.bottom)
                 TemplateKind.Grid -> Box(r.left, r.top * k, r.right, min(1.0, r.bottom * k))
+                TemplateKind.Story -> Box(r.left, r.top, r.right, r.bottom)
             }
             if (scaled.right - scaled.left < MIN_SIZE || scaled.bottom - scaled.top < MIN_SIZE) null else layer.withRect(scaled.toNRect())
         }

@@ -13,6 +13,15 @@ enum class ZoneKind {
 
     /** A centred square, still used by some embeds, shares and older app versions. */
     SquareCrop,
+
+    /** A story's progress bar and account name, and the top of a Reel's screen. */
+    ScreenTop,
+
+    /** A Reel's caption and account name, or a story's reply bar. */
+    ScreenBottom,
+
+    /** A Reel's like, comment, share and audio buttons down the right edge. */
+    ReelButtons,
 }
 
 data class SafeZone(val kind: ZoneKind, val rect: NRect)
@@ -68,6 +77,27 @@ object SafeZones {
             NRect(0.0, (1 - hh) / 2, 1.0, (1 + hh) / 2)
         }
     }
+
+    /** Top band covered on a 9:16 story or Reel, in screen heights. */
+    private const val SCREEN_TOP = 0.13
+
+    /** Bottom band covered by a Reel's caption or a story's reply bar, in screen heights. */
+    private const val SCREEN_BOTTOM = 0.20
+
+    /** The Reel button column, in screen widths and heights. */
+    private const val BUTTONS_WIDTH = 0.13
+    private const val BUTTONS_TOP = 0.45
+
+    /** What Instagram draws over a full-screen 9:16 story or Reel. Approximate, like the feed overlays. */
+    fun story(): List<SafeZone> = listOf(
+        SafeZone(ZoneKind.ScreenTop, NRect(0.0, 0.0, 1.0, SCREEN_TOP)),
+        SafeZone(ZoneKind.ScreenBottom, NRect(0.0, 1 - SCREEN_BOTTOM, 1.0, 1.0)),
+        SafeZone(ZoneKind.ReelButtons, NRect(1 - BUTTONS_WIDTH, BUTTONS_TOP, 1.0, 1 - SCREEN_BOTTOM)),
+    )
+
+    /** The part of a Reel cover the profile grid shows: a centred 3:4. */
+    fun storyCrops(): List<SafeZone> =
+        listOf(SafeZone(ZoneKind.GridCrop, crop(InstagramSpec.StorySize.aspect, InstagramSpec.GridThumb.aspect)))
 
     /** Both crops for the cover of a post: the profile grid (3:4) and the square view. */
     fun coverCrops(post: PostRatio): List<SafeZone> = coverCrops(post.size.aspect)

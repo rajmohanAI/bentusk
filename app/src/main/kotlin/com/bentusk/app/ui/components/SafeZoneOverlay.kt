@@ -42,8 +42,9 @@ object SafeZoneColors {
 /**
  * Draws Instagram's overlays and crops onto one slide or tile shown at [topLeft] with [size] on screen.
  * [cover] adds the grid and square crops, which matter for the post's first slide and for every grid tile.
+ * A [story] shows the full-screen overlays of stories and Reels and the 3:4 grid crop of a Reel cover instead.
  */
-fun DrawScope.drawSafeZones(topLeft: Offset, size: Size, carousel: Boolean, cover: Boolean) {
+fun DrawScope.drawSafeZones(topLeft: Offset, size: Size, carousel: Boolean, cover: Boolean, story: Boolean = false) {
     val aspect = (size.width / size.height).toDouble()
     fun place(r: NRect) = Offset(topLeft.x + (r.left * size.width).toFloat(), topLeft.y + (r.top * size.height).toFloat()) to
         Size(((r.right - r.left) * size.width).toFloat(), ((r.bottom - r.top) * size.height).toFloat())
@@ -51,7 +52,7 @@ fun DrawScope.drawSafeZones(topLeft: Offset, size: Size, carousel: Boolean, cove
     val line = 1.5f * density
     if (cover) {
         val dash = PathEffect.dashPathEffect(floatArrayOf(6f * density, 4f * density))
-        for (zone in SafeZones.coverCrops(aspect)) {
+        for (zone in if (story) SafeZones.storyCrops() else SafeZones.coverCrops(aspect)) {
             val (at, s) = place(zone.rect)
             // A crop that keeps the whole post has nothing to show.
             if (s.width >= size.width - 0.5f && s.height >= size.height - 0.5f) continue
@@ -59,9 +60,10 @@ fun DrawScope.drawSafeZones(topLeft: Offset, size: Size, carousel: Boolean, cove
             drawRect(colour, at, s, style = Stroke(width = line, pathEffect = dash))
         }
     }
-    for (zone in SafeZones.overlays(aspect, carousel)) {
+    for (zone in if (story) SafeZones.story() else SafeZones.overlays(aspect, carousel)) {
         val (at, s) = place(zone.rect)
-        val radius = CornerRadius(minOf(s.width, s.height) / 2)
+        // Feed icons are round pills; the full-screen bars are wide bands.
+        val radius = CornerRadius(if (story) 8f * density else minOf(s.width, s.height) / 2)
         drawRoundRect(SafeZoneColors.Covered.copy(alpha = 0.35f), at, s, radius)
         drawRoundRect(SafeZoneColors.Covered, at, s, radius, style = Stroke(width = line))
     }
@@ -69,11 +71,16 @@ fun DrawScope.drawSafeZones(topLeft: Offset, size: Size, carousel: Boolean, cove
 
 /** A one-line key for the overlay colours. */
 @Composable
-fun SafeZoneLegend(modifier: Modifier = Modifier, textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+fun SafeZoneLegend(
+    modifier: Modifier = Modifier,
+    textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    /** Stories have no square view, so they leave it out. */
+    square: Boolean = true,
+) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         LegendItem(SafeZoneColors.Covered, stringResource(R.string.safe_zone_icons), textColor, filled = true)
         LegendItem(SafeZoneColors.Grid, stringResource(R.string.safe_zone_grid), textColor, filled = false)
-        LegendItem(SafeZoneColors.Square, stringResource(R.string.safe_zone_square), textColor, filled = false)
+        if (square) LegendItem(SafeZoneColors.Square, stringResource(R.string.safe_zone_square), textColor, filled = false)
     }
 }
 

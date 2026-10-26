@@ -152,6 +152,7 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                             }
                             ExportKind.Carousel -> CarouselResult(state.tiles)
                             ExportKind.Cover -> state.coverUri?.let { CoverResult(it) }
+                            ExportKind.Story -> state.tiles.firstOrNull()?.let { StoryResult(it) }
                         }
                         if (state.hasCaption) {
                             Spacer(Modifier.height(20.dp))
@@ -337,6 +338,7 @@ private fun Header(state: ExportUiState) {
             ExportKind.Grid -> R.string.grid_post_hint
             ExportKind.Carousel -> R.string.carousel_post_hint
             ExportKind.Cover -> R.string.cover_post_hint
+            ExportKind.Story -> R.string.story_post_hint
         }
         Text(
             stringResource(hint),
@@ -387,6 +389,13 @@ private fun CarouselResult(tiles: List<ExportedTile>) {
                 StepBadge(item.tile.postOrder, highlight = false)
             }
         }
+    }
+}
+
+@Composable
+private fun StoryResult(item: ExportedTile) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+        Thumbnail(item.uri, item.fileName, Modifier.height(360.dp).aspectRatio(9f / 16f).clip(RoundedCornerShape(12.dp)))
     }
 }
 

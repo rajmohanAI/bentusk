@@ -127,7 +127,9 @@ private fun describe(issue: QualityIssue): Triple<ImageVector, String, String> =
 @Composable
 private fun place(design: Design, tile: Int): String {
     val t = design.layout().tiles[tile]
-    return if (design.kind == TemplateKind.Carousel) {
+    return if (design.kind == TemplateKind.Story) {
+        stringResource(R.string.check_on_story)
+    } else if (design.kind == TemplateKind.Carousel) {
         stringResource(R.string.check_on_slide, t.index + 1)
     } else {
         stringResource(R.string.check_on_tile, t.row + 1, t.column + 1)

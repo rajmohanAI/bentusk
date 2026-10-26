@@ -207,7 +207,13 @@ fun StudioCanvas(
                 if (r.right <= region.left || r.left >= region.right || r.bottom <= region.top || r.top >= region.bottom) continue
                 val (topLeft, s) = box(r)
                 // The cover is what the grid shows; on a grid every tile is its own cover.
-                drawSafeZones(topLeft, s, carousel = carousel, cover = !carousel || tile.postOrder == 1)
+                drawSafeZones(
+                    topLeft,
+                    s,
+                    carousel = carousel,
+                    cover = !carousel || tile.postOrder == 1,
+                    story = design.kind == TemplateKind.Story,
+                )
             }
         }
 

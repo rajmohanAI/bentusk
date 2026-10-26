@@ -143,13 +143,19 @@ fun MainToolbar(
         ToolButton(Icons.Rounded.TouchApp, stringResource(R.string.tool_stickers), panel == StudioPanel.Stickers) {
             onPanel(StudioPanel.Stickers)
         }
-        ToolButton(
-            if (kind == TemplateKind.Carousel) Icons.Rounded.ViewCarousel else Icons.Rounded.ViewModule,
-            stringResource(if (kind == TemplateKind.Carousel) R.string.tool_slides else R.string.tool_rows),
-            panel == StudioPanel.Slides,
-        ) { onPanel(StudioPanel.Slides) }
+        // A story is one fixed 9:16 screen, so it has no slides, rows or post ratio to change.
+        val story = kind == TemplateKind.Story
+        if (!story) {
+            ToolButton(
+                if (kind == TemplateKind.Carousel) Icons.Rounded.ViewCarousel else Icons.Rounded.ViewModule,
+                stringResource(if (kind == TemplateKind.Carousel) R.string.tool_slides else R.string.tool_rows),
+                panel == StudioPanel.Slides,
+            ) { onPanel(StudioPanel.Slides) }
+        }
         ToolButton(Icons.Rounded.Layers, stringResource(R.string.tool_layers), panel == StudioPanel.Layers) { onPanel(StudioPanel.Layers) }
-        ToolButton(Icons.Rounded.AspectRatio, stringResource(R.string.tool_ratio), panel == StudioPanel.Ratio) { onPanel(StudioPanel.Ratio) }
+        if (!story) {
+            ToolButton(Icons.Rounded.AspectRatio, stringResource(R.string.tool_ratio), panel == StudioPanel.Ratio) { onPanel(StudioPanel.Ratio) }
+        }
         ToolButton(Icons.Rounded.Wallpaper, stringResource(R.string.tool_backgrounds), panel == StudioPanel.Background) {
             onPanel(StudioPanel.Background)
         }
