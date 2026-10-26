@@ -1,6 +1,7 @@
 package com.bentusk.app.core.storage
 
 import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -41,5 +42,18 @@ object ShareHelper {
     fun shareText(context: Context, text: String, chooserTitle: String) {
         val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
         context.startActivity(Intent.createChooser(intent, chooserTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** Copies [text] so it can be pasted into Instagram's caption box, which a share intent cannot fill. */
+    fun copyText(context: Context, label: String, text: String) {
+        context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text))
+    }
+
+    /** Opens Instagram's store page, for phones that don't have it yet. */
+    fun openInstagramListing(context: Context) {
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$INSTAGRAM"))
+        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$INSTAGRAM"))
+        val intent = if (market.resolveActivity(context.packageManager) != null) market else web
+        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

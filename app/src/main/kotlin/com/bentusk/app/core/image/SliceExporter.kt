@@ -35,7 +35,7 @@ data class SliceJob(
     val filePrefix: String,
 )
 
-data class ExportedTile(val tile: Tile, val uri: Uri, val fileName: String)
+data class ExportedTile(val tile: Tile, val uri: Uri, val fileName: String, val isVideo: Boolean = false)
 
 sealed interface ExportProgress {
     data class Working(val done: Int, val total: Int) : ExportProgress
@@ -58,8 +58,9 @@ class SliceExporter @Inject constructor(
         val framing = FramingMath.clamp(upright, canvas, job.framing)
         val scale = FramingMath.scale(upright, canvas, framing)
 
-        val plan = DecodePlan.forRender(upright, scale, loader.renderBudgetPixels())
-        val photo = loader.decode(job.photo, plan.sampleSize)
+        val budget = loader.renderBudgetPixels()
+        val plan = DecodePlan.forRender(upright, scale, budget)
+        val photo = Resampler.prepare(loader.decode(job.photo, plan.sampleSize), job.geometry, scale, budget)
         val decoded = PxSize(photo.width, photo.height)
         val transform = job.geometry.decodedToCanvas(decoded, canvas, framing)
         val backdrop = PreparedBackdrop.prepare(job.backdrop, photo, job.geometry, canvas)

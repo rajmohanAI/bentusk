@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
 import com.bentusk.app.core.image.TileFrame
+import com.bentusk.app.ui.components.drawSafeZones
+import com.bentusk.engine.CarouselLayout
 import com.bentusk.engine.Framing
 import com.bentusk.engine.FramingMath
 import com.bentusk.engine.PxRect
@@ -59,6 +61,8 @@ fun SliceCanvas(
     frame: TileFrame?,
     showGuides: Boolean,
     modifier: Modifier = Modifier,
+    /** Marks where Instagram's icons cover each slide and where the grid and square views crop it. */
+    showSafeZones: Boolean = false,
     region: PxRect = PxRect(0, 0, layout.canvas.width, layout.canvas.height),
     gestureMode: GestureMode = GestureMode.All,
     onGesture: (centroid: Vec2, pan: Vec2, zoom: Double, rotation: Double) -> Unit = { _, _, _, _ -> },
@@ -136,6 +140,18 @@ fun SliceCanvas(
                     topLeft = Offset((tile.rect.left - region.left) * k + w / 2, (tile.rect.top - region.top) * k + w / 2),
                     size = Size(tile.rect.width * k - w, tile.rect.height * k - w),
                     style = Stroke(width = w),
+                )
+            }
+        }
+
+        if (showSafeZones) {
+            val carousel = layout is CarouselLayout
+            for (tile in tiles) {
+                drawSafeZones(
+                    Offset((tile.rect.left - region.left) * k, (tile.rect.top - region.top) * k),
+                    Size(tile.rect.width * k, tile.rect.height * k),
+                    carousel = carousel,
+                    cover = !carousel || tile.postOrder == 1,
                 )
             }
         }

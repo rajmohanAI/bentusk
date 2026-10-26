@@ -1,5 +1,6 @@
 package com.bentusk.engine
 
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
@@ -13,6 +14,7 @@ import kotlin.math.sin
  * Values below 1.0 shrink the photo inside the canvas and expose the background fill.
  * [offset] is the photo centre's displacement from the canvas centre, in canvas pixels.
  */
+@Serializable
 data class Framing(
     val rotationDegrees: Double = 0.0,
     val zoom: Double = 1.0,

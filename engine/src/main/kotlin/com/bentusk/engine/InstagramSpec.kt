@@ -13,6 +13,32 @@ object InstagramSpec {
 
     val StorySize = PxSize(1080, 1920)
 
+    /** Shape of a post's thumbnail on the profile grid. */
+    val GridThumb = PxSize(3, 4)
+
+    /** Longest video slide Carowsle exports in a carousel. Kept conservative so every account can post it. */
+    const val CAROUSEL_VIDEO_MAX_MS = 60_000L
+
+    /** Shortest clip worth exporting. */
+    const val VIDEO_MIN_MS = 1_000L
+
+    /** Frame rate for video slides: Instagram plays feed video at 30 fps, so higher rates only cost size. */
+    const val VIDEO_FPS = 30
+
+    /** H.264 bitrate for a 1080-wide slide: high enough that Instagram's re-encode starts from a clean picture. */
+    const val VIDEO_BITRATE = 12_000_000
+
+    /** Posts a profile can pin to the top of its grid. */
+    const val MAX_PINNED = 3
+
+    const val CAPTION_MAX_CHARS = 2200
+
+    /** Instagram has limited posts to five hashtags since December 2025. */
+    const val MAX_HASHTAGS = 5
+
+    /** Captions are cut off after about this many characters in the feed, so the hook must fit before it. */
+    const val CAPTION_PREVIEW_CHARS = 125
+
     /** Diameter of the circle Instagram crops highlight covers to, as a fraction of story width. */
     const val HIGHLIGHT_CIRCLE_FRACTION = 0.62
 }

@@ -3,6 +3,8 @@ package com.bentusk.app.feature.export
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -22,18 +24,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Alarm
+import androidx.compose.material.icons.rounded.AlarmOn
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -63,6 +68,8 @@ import com.bentusk.app.core.storage.ShareHelper
 import com.bentusk.app.ui.components.Thumbnail
 import com.bentusk.app.ui.theme.NumericStyle
 import com.bentusk.engine.InstagramSpec
+import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Composable
 fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel()) {
@@ -80,6 +87,44 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
     val instagramInstalled = remember { ShareHelper.isInstagramInstalled(context) }
     LaunchedEffect(state.askForReview) { if (state.askForReview) showReview = true }
 
+    var consentFor by remember { mutableStateOf<List<Uri>?>(null) }
+    var showReminderPicker by remember { mutableStateOf(false) }
+    var pendingReminder by remember { mutableStateOf<LocalDateTime?>(null) }
+    val notificationsNeeded = stringResource(R.string.reminder_needs_notifications)
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val time = pendingReminder
+        pendingReminder = null
+        if (granted && time != null) viewModel.remind(time) else Toast.makeText(context, notificationsNeeded, Toast.LENGTH_LONG).show()
+    }
+    fun setReminder(time: LocalDateTime) {
+        showReminderPicker = false
+        if (viewModel.canNotify() || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            viewModel.remind(time)
+        } else {
+            pendingReminder = time
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    val captionCopied = stringResource(R.string.caption_copied)
+    // Instagram cannot take a caption through a share intent, so it goes on the clipboard for a long-press paste.
+    fun post(uris: List<Uri>) {
+        if (state.caption.isNotBlank()) {
+            ShareHelper.copyText(context, context.getString(R.string.caption), state.captionToPost)
+            Toast.makeText(context, captionCopied, Toast.LENGTH_LONG).show()
+        }
+        ShareHelper.shareImages(context, uris, state.shareMime, true, context.getString(R.string.share))
+    }
+    fun requestPost(uris: List<Uri>) {
+        when {
+            // Without Instagram there is nothing to hand over to, so offer to install it.
+            !instagramInstalled -> ShareHelper.openInstagramListing(context)
+            state.instagramConsent -> post(uris)
+            else -> consentFor = uris
+        }
+    }
+    // A grid goes up one tile at a time, in order; the main button always posts the next one.
+    val nextTile = state.tiles.sortedBy { it.tile.postOrder }.firstOrNull { it.tile.postOrder !in posted }
+
     Scaffold { padding ->
         Column(
             Modifier
@@ -92,25 +137,67 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                 state.failed -> Failed(onRetry = viewModel::retry, onDone = onDone)
                 !state.finished -> Working(state.done, state.total)
                 else -> {
-                    Header(state)
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Header(state)
                         when (state.kind) {
                             ExportKind.Grid -> GridResult(state.tiles, posted) { item ->
                                 posted = posted + item.tile.postOrder
-                                ShareHelper.shareImages(
-                                    context, listOf(item.uri), state.format.mimeType, true, context.getString(R.string.share),
-                                )
+                                requestPost(listOf(item.uri))
                             }
                             ExportKind.Carousel -> CarouselResult(state.tiles)
                             ExportKind.Cover -> state.coverUri?.let { CoverResult(it) }
+                            ExportKind.Story -> state.tiles.firstOrNull()?.let { StoryResult(it) }
+                        }
+                        if (state.hasCaption) {
+                            Spacer(Modifier.height(20.dp))
+                            CaptionComposer(
+                                caption = state.caption,
+                                onCaptionChange = viewModel::setCaption,
+                                onToggleHashtag = viewModel::toggleHashtag,
+                                onCopy = {
+                                    ShareHelper.copyText(context, context.getString(R.string.caption), state.captionToPost)
+                                    Toast.makeText(context, captionCopied, Toast.LENGTH_SHORT).show()
+                                },
+                                onWriteWithAi = viewModel::openAi,
+                                keepLineBreaks = state.keepLineBreaks,
+                                onKeepLineBreaks = viewModel::setKeepLineBreaks,
+                                library = state.library,
+                                actions = CaptionLibraryActions(
+                                    saveTags = viewModel::saveTags,
+                                    saveCaption = viewModel::saveCaption,
+                                    useTags = viewModel::useTags,
+                                    useCaption = viewModel::useCaption,
+                                    removeTags = viewModel::removeTags,
+                                    removeCaption = viewModel::removeCaption,
+                                ),
+                            )
                         }
                     }
                     Actions(
+                        instagramLabel = when {
+                            state.kind != ExportKind.Grid -> stringResource(R.string.post_to_instagram)
+                            nextTile != null -> stringResource(R.string.post_tile_to_instagram, nextTile.tile.postOrder, state.tiles.size)
+                            else -> stringResource(R.string.grid_all_posted)
+                        },
+                        instagramEnabled = state.kind != ExportKind.Grid || nextTile != null,
                         onShareInstagram = {
-                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, true, context.getString(R.string.share))
+                            if (state.kind == ExportKind.Grid) {
+                                nextTile?.let {
+                                    posted = posted + it.tile.postOrder
+                                    requestPost(listOf(it.uri))
+                                }
+                            } else {
+                                requestPost(state.uris)
+                            }
                         },
                         onShare = {
-                            ShareHelper.shareImages(context, state.uris, state.format.mimeType, false, context.getString(R.string.share))
+                            ShareHelper.shareImages(context, state.uris, state.shareMime, false, context.getString(R.string.share))
                         },
                         onShareApp = {
                             ShareHelper.shareText(
@@ -119,13 +206,49 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                 context.getString(R.string.share),
                             )
                         },
-                        onDone = onDone,
-                        // A grid is posted tile by tile from the preview above, not as one carousel.
-                        showInstagram = state.kind != ExportKind.Grid && instagramInstalled,
+                        onDone = {
+                            viewModel.clearCaption()
+                            onDone()
+                        },
+                        reminder = if (state.kind == ExportKind.Cover) null else state.reminderAt,
+                        canRemind = state.kind != ExportKind.Cover,
+                        onRemind = { showReminderPicker = true },
                     )
                 }
             }
         }
+    }
+
+    if (showReminderPicker) {
+        ReminderPicker(onPick = ::setReminder, onDismiss = { showReminderPicker = false })
+    }
+
+    if (state.ai.open) {
+        AiCaptionSheet(
+            state = state.ai,
+            onDismiss = viewModel::closeAi,
+            onTone = viewModel::setTone,
+            onLanguage = viewModel::setLanguage,
+            onEmoji = viewModel::setEmoji,
+            onAgain = viewModel::writeAgain,
+            onUse = viewModel::useIdea,
+        )
+    }
+
+    consentFor?.let { uris ->
+        AlertDialog(
+            onDismissRequest = { consentFor = null },
+            title = { Text(stringResource(R.string.instagram_consent_title)) },
+            text = { Text(stringResource(R.string.instagram_consent_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    consentFor = null
+                    viewModel.grantInstagramConsent()
+                    post(uris)
+                }) { Text(stringResource(R.string.instagram_consent_allow)) }
+            },
+            dismissButton = { TextButton(onClick = { consentFor = null }) { Text(stringResource(R.string.not_now)) } },
+        )
     }
 
     if (showReview) {
@@ -146,6 +269,9 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
         )
     }
 }
+
+/** A warm sunset gradient that reads as "post" without copying Instagram's mark. */
+private val InstagramGradient = Brush.linearGradient(listOf(Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF)))
 
 private fun playStoreUrl(packageName: String) = "https://play.google.com/store/apps/details?id=$packageName"
 
@@ -198,13 +324,21 @@ private fun Header(state: ExportUiState) {
         Icon(Icons.Rounded.CheckCircle, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(R.string.saved_to_gallery, state.uris.size),
+            if (state.hasCaption) stringResource(R.string.ready_to_post) else stringResource(R.string.saved_to_gallery, state.uris.size),
             style = MaterialTheme.typography.headlineSmall,
         )
+        if (state.hasCaption) {
+            Text(
+                stringResource(R.string.saved_to_gallery, state.uris.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
         val hint = when (state.kind) {
             ExportKind.Grid -> R.string.grid_post_hint
             ExportKind.Carousel -> R.string.carousel_post_hint
             ExportKind.Cover -> R.string.cover_post_hint
+            ExportKind.Story -> R.string.story_post_hint
         }
         Text(
             stringResource(hint),
@@ -219,23 +353,22 @@ private fun Header(state: ExportUiState) {
 /** Tiles laid out as they will appear on the profile, each labelled with its posting step. */
 @Composable
 private fun GridResult(tiles: List<ExportedTile>, posted: Set<Int>, onPost: (ExportedTile) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(InstagramSpec.GRID_COLUMNS),
-        contentPadding = PaddingValues(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        items(tiles.sortedBy { it.tile.index }, key = { it.tile.index }) { item ->
-            val ratio = tiles.first().tile.rect.let { it.width.toFloat() / it.height }
-            val next = (1..tiles.size).firstOrNull { it !in posted }
-            Box(Modifier.aspectRatio(ratio).clickable { onPost(item) }) {
-                Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
-                if (item.tile.postOrder in posted) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.CheckCircle, null, tint = Color.White)
+    val ratio = tiles.first().tile.rect.let { it.width.toFloat() / it.height }
+    val next = (1..tiles.size).firstOrNull { it !in posted }
+    Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (row in tiles.sortedBy { it.tile.index }.chunked(InstagramSpec.GRID_COLUMNS)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (item in row) {
+                    Box(Modifier.weight(1f).aspectRatio(ratio).clickable { onPost(item) }) {
+                        Thumbnail(item.uri, item.fileName, Modifier.fillMaxSize())
+                        if (item.tile.postOrder in posted) {
+                            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.CheckCircle, null, tint = Color.White)
+                            }
+                        }
+                        StepBadge(item.tile.postOrder, highlight = item.tile.postOrder == next)
                     }
                 }
-                StepBadge(item.tile.postOrder, highlight = item.tile.postOrder == next)
             }
         }
     }
@@ -246,7 +379,7 @@ private fun CarouselResult(tiles: List<ExportedTile>) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxWidth().height(280.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items(tiles.sortedBy { it.tile.postOrder }, key = { it.tile.index }) { item ->
@@ -260,8 +393,15 @@ private fun CarouselResult(tiles: List<ExportedTile>) {
 }
 
 @Composable
+private fun StoryResult(item: ExportedTile) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+        Thumbnail(item.uri, item.fileName, Modifier.height(360.dp).aspectRatio(9f / 16f).clip(RoundedCornerShape(12.dp)))
+    }
+}
+
+@Composable
 private fun CoverResult(uri: Uri) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
         Thumbnail(uri, null, Modifier.size(180.dp).clip(CircleShape))
     }
 }
@@ -286,16 +426,34 @@ private fun StepBadge(step: Int, highlight: Boolean) {
 
 @Composable
 private fun Actions(
+    instagramLabel: String,
+    instagramEnabled: Boolean,
     onShareInstagram: () -> Unit,
     onShare: () -> Unit,
     onShareApp: () -> Unit,
     onDone: () -> Unit,
-    showInstagram: Boolean,
+    reminder: LocalDateTime?,
+    canRemind: Boolean,
+    onRemind: () -> Unit,
 ) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (showInstagram) {
-            Button(onClick = onShareInstagram, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text(stringResource(R.string.open_in_instagram))
+        Button(
+            onClick = onShareInstagram,
+            enabled = instagramEnabled,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues(),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        if (instagramEnabled) InstagramGradient else Brush.linearGradient(listOf(Color.Gray, Color.Gray)),
+                        RoundedCornerShape(50),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(instagramLabel, color = Color.White, style = MaterialTheme.typography.titleSmall)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -305,6 +463,19 @@ private fun Actions(
                 Text(stringResource(R.string.share))
             }
             OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.done)) }
+        }
+        if (canRemind) {
+            TextButton(onClick = onRemind, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Icon(if (reminder == null) Icons.Rounded.Alarm else Icons.Rounded.AlarmOn, null)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (reminder == null) {
+                        stringResource(R.string.reminder_set_button)
+                    } else {
+                        stringResource(R.string.reminder_set_for, reminderLabel(reminder, LocalDate.now()))
+                    },
+                )
+            }
         }
         TextButton(onClick = onShareApp, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(stringResource(R.string.share_app))

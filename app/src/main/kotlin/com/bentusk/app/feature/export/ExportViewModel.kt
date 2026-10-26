@@ -3,25 +3,40 @@ package com.bentusk.app.feature.export
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bentusk.app.core.ai.PhotoLabeler
 import com.bentusk.app.core.data.SettingsStore
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.core.image.ExportProgress
 import com.bentusk.app.core.image.ExportedTile
 import com.bentusk.app.core.image.SliceExporter
+import com.bentusk.app.core.image.DesignExporter
+import com.bentusk.app.core.reminder.Reminders
 import com.bentusk.app.core.storage.MediaSaver
+import com.bentusk.engine.Caption
+import com.bentusk.engine.CaptionIdeas
+import com.bentusk.engine.CaptionLibrary
+import com.bentusk.engine.HashtagSets
+import com.bentusk.engine.PostReminder
+import com.bentusk.engine.SavedCaption
+import com.bentusk.engine.SavedTags
+import com.bentusk.engine.TemplateKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
-enum class ExportKind { Carousel, Grid, Cover }
+enum class ExportKind { Carousel, Grid, Cover, Story }
 
 data class ExportUiState(
     val kind: ExportKind = ExportKind.Carousel,
@@ -36,17 +51,59 @@ data class ExportUiState(
     val needsPermission: Boolean = false,
     /** True on the export where the app should ask for a Play review. */
     val askForReview: Boolean = false,
+    val caption: String = "",
+    /** True once the user has agreed to hand posts over to the Instagram app. */
+    val instagramConsent: Boolean = false,
+    val keepLineBreaks: Boolean = true,
+    val ai: AiCaptionState = AiCaptionState(),
+    /** When the user asked to be reminded to post this export, once the reminder is set. */
+    val reminderAt: LocalDateTime? = null,
+    /** The user's saved hashtag sets and captions. */
+    val library: CaptionLibrary = CaptionLibrary(),
 ) {
     val uris: List<Uri> get() = coverUri?.let { listOf(it) } ?: tiles.map { it.uri }
+
+    /** What the share sheet is told it is getting: photos, videos, or a mix of both. */
+    val shareMime: String
+        get() = when {
+            tiles.isEmpty() || tiles.none { it.isVideo } -> format.mimeType
+            tiles.all { it.isVideo } -> MediaSaver.VIDEO_MIME
+            else -> "*/*"
+        }
+
+    /** Posts that go on the feed get a caption; covers are only used inside highlights. */
+    val hasCaption: Boolean get() = kind != ExportKind.Cover && kind != ExportKind.Story
+
+    val hashtags: List<String> get() = Caption.hashtags(caption)
+
+    /** The caption as it goes on the clipboard for Instagram. */
+    val captionToPost: String get() = if (keepLineBreaks) Caption.keepLineBreaks(caption) else caption.trim()
 }
+
+/** The "Write with AI" sheet: the user's choices and the captions written for them. */
+data class AiCaptionState(
+    val open: Boolean = false,
+    val busy: Boolean = false,
+    val tone: CaptionIdeas.Tone = CaptionIdeas.Tone.Fun,
+    val language: CaptionIdeas.Language = CaptionIdeas.Language.English,
+    val emoji: Boolean = true,
+    val ideas: List<String> = emptyList(),
+    val variant: Int = 0,
+)
 
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val session: ExportSession,
     private val exporter: SliceExporter,
+    private val designExporter: DesignExporter,
     private val saver: MediaSaver,
     private val settings: SettingsStore,
+    private val labeler: PhotoLabeler,
+    private val reminders: Reminders,
 ) : ViewModel() {
+
+    /** What the exported images show, worked out once on the phone. */
+    private var labels: List<String>? = null
 
     private val _state = MutableStateFlow(ExportUiState())
     val state: StateFlow<ExportUiState> = _state.asStateFlow()
@@ -54,6 +111,13 @@ class ExportViewModel @Inject constructor(
     private var job: Job? = null
 
     init {
+        _state.update { it.copy(caption = session.caption) }
+        viewModelScope.launch {
+            settings.settings.collect { s ->
+                _state.update { it.copy(instagramConsent = s.instagramConsent, keepLineBreaks = s.keepLineBreaks) }
+            }
+        }
+        viewModelScope.launch { settings.captionLibrary.collect { l -> _state.update { it.copy(library = l) } } }
         if (saver.needsLegacyPermission) _state.update { it.copy(needsPermission = true) } else start()
     }
 
@@ -71,29 +135,157 @@ class ExportViewModel @Inject constructor(
         start()
     }
 
+    fun setCaption(text: String) {
+        session.caption = text
+        _state.update { it.copy(caption = text) }
+    }
+
+    fun openAi() {
+        _state.update { it.copy(ai = it.ai.copy(open = true)) }
+        if (_state.value.ai.ideas.isEmpty()) writeIdeas()
+    }
+
+    fun closeAi() = _state.update { it.copy(ai = it.ai.copy(open = false)) }
+
+    fun setTone(tone: CaptionIdeas.Tone) = changeAi { it.copy(tone = tone) }
+
+    fun setLanguage(language: CaptionIdeas.Language) = changeAi { it.copy(language = language) }
+
+    fun setEmoji(on: Boolean) = changeAi { it.copy(emoji = on) }
+
+    fun writeAgain() = changeAi { it.copy(variant = it.variant + 1) }
+
+    private fun changeAi(change: (AiCaptionState) -> AiCaptionState) {
+        _state.update { it.copy(ai = change(it.ai)) }
+        writeIdeas()
+    }
+
+    private var aiJob: Job? = null
+
+    private fun writeIdeas() {
+        aiJob?.cancel()
+        aiJob = viewModelScope.launch {
+            _state.update { it.copy(ai = it.ai.copy(busy = true)) }
+            val found = labels ?: labeler.labels(_state.value.uris).also { labels = it }
+            val s = _state.value
+            val ideas = CaptionIdeas.write(
+                CaptionIdeas.Request(found, s.ai.tone, s.ai.language, s.ai.emoji, slides = s.tiles.size, variant = s.ai.variant),
+            )
+            _state.update { it.copy(ai = it.ai.copy(busy = false, ideas = ideas)) }
+        }
+    }
+
+    /** Puts a written caption in the box, with a few fitting hashtags if it has none yet. It stays editable. */
+    fun useIdea(text: String) {
+        val theme = CaptionIdeas.theme(labels.orEmpty())
+        val topic = HashtagSets.Topics.firstOrNull { it.id == CaptionIdeas.hashtagTopic(theme) }
+        val existing = Caption.hashtags(_state.value.caption)
+        var caption = text
+        if (existing.isEmpty()) topic?.tags?.take(SUGGESTED_TAGS)?.forEach { caption = Caption.toggleHashtag(caption, it) }
+        else existing.forEach { caption = Caption.toggleHashtag(caption, it) }
+        setCaption(caption)
+        closeAi()
+    }
+
+    /** The post is finished; the next one starts with an empty caption. */
+    /** Whether a reminder notification can be shown, or the user must be asked first. */
+    fun canNotify(): Boolean = reminders.canNotify()
+
+    /** Sets a notification for [at] that brings the user back to post this export, files and caption ready. */
+    fun remind(at: LocalDateTime) {
+        val s = _state.value
+        val grid = s.kind == ExportKind.Grid
+        // A grid is posted bottom-right first, one tile at a time.
+        val uris = if (grid) s.tiles.sortedBy { it.tile.postOrder }.map { it.uri } else s.uris
+        val reminder = PostReminder(
+            id = UUID.randomUUID().toString(),
+            dueAt = at.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            uris = uris.map(Uri::toString),
+            mime = s.shareMime,
+            caption = if (s.hasCaption) s.captionToPost else "",
+            oneAtATime = grid,
+        )
+        viewModelScope.launch {
+            reminders.schedule(reminder)
+            _state.update { it.copy(reminderAt = at) }
+        }
+    }
+
+    fun clearCaption() {
+        session.caption = ""
+    }
+
+    fun setKeepLineBreaks(on: Boolean) {
+        viewModelScope.launch { settings.setKeepLineBreaks(on) }
+    }
+
+    fun toggleHashtag(tag: String) = setCaption(Caption.toggleHashtag(_state.value.caption, tag))
+
+    /** Saves the caption's current hashtags as a set; a blank [name] is made from the tags. */
+    fun saveTags(name: String) {
+        val tags = _state.value.hashtags
+        viewModelScope.launch { settings.updateCaptionLibrary { it.saveTags(name, tags, System.currentTimeMillis()) } }
+    }
+
+    /** Saves the caption as it stands for reuse; a blank [name] is made from its first line. */
+    fun saveCaption(name: String) {
+        val text = _state.value.caption
+        viewModelScope.launch { settings.updateCaptionLibrary { it.saveCaption(name, text, System.currentTimeMillis()) } }
+    }
+
+    fun useTags(set: SavedTags) = setCaption(Caption.addHashtags(_state.value.caption, set.tags))
+
+    fun useCaption(saved: SavedCaption) = setCaption(Caption.insertSnippet(_state.value.caption, saved.text))
+
+    fun removeTags(set: SavedTags) {
+        viewModelScope.launch { settings.updateCaptionLibrary { it.removeTags(set.id) } }
+    }
+
+    fun removeCaption(saved: SavedCaption) {
+        viewModelScope.launch { settings.updateCaptionLibrary { it.removeCaption(saved.id) } }
+    }
+
+    fun grantInstagramConsent() {
+        viewModelScope.launch { settings.setInstagramConsent(true) }
+    }
+
+    private suspend fun collect(progress: Flow<ExportProgress>) {
+        progress.collect { p ->
+            when (p) {
+                is ExportProgress.Working -> _state.update { it.copy(done = p.done, total = p.total) }
+                is ExportProgress.Finished -> _state.update {
+                    it.copy(tiles = p.tiles, millis = p.millis, finished = true)
+                }
+            }
+        }
+    }
+
     private fun start() {
         if (job?.isActive == true) return
         val slice = session.slice
         val cover = session.cover
+        val design = session.design
         job = viewModelScope.launch {
             try {
                 when {
                     slice != null -> {
                         val kind = if (slice.filePrefix.contains("grid")) ExportKind.Grid else ExportKind.Carousel
                         _state.update { it.copy(kind = kind, format = slice.format, total = slice.layout.count) }
-                        exporter.export(slice).collect { p ->
-                            when (p) {
-                                is ExportProgress.Working -> _state.update { it.copy(done = p.done, total = p.total) }
-                                is ExportProgress.Finished -> _state.update {
-                                    it.copy(tiles = p.tiles, millis = p.millis, finished = true)
-                                }
-                            }
+                        collect(exporter.export(slice))
+                    }
+                    design != null -> {
+                        val kind = when (design.design.kind) {
+                            TemplateKind.Grid -> ExportKind.Grid
+                            TemplateKind.Story -> ExportKind.Story
+                            TemplateKind.Carousel -> ExportKind.Carousel
                         }
+                        _state.update { it.copy(kind = kind, format = design.format, total = design.design.layout().count) }
+                        collect(designExporter.export(design))
                     }
                     cover != null -> {
                         _state.update { it.copy(kind = ExportKind.Cover, format = cover.format, total = 1) }
                         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                        val uri = saver.save(cover.bitmap, "bentusk_cover_$stamp.${cover.format.extension}", cover.format)
+                        val uri = saver.save(cover.bitmap, "carowsle_cover_$stamp.${cover.format.extension}", cover.format)
                         _state.update { it.copy(coverUri = uri, done = 1, finished = true) }
                     }
                     else -> _state.update { it.copy(failed = true) }
@@ -110,5 +302,6 @@ class ExportViewModel @Inject constructor(
 
     companion object {
         const val REVIEW_AFTER_EXPORTS = 3
+        private const val SUGGESTED_TAGS = 3
     }
 }

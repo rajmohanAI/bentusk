@@ -1,4 +1,4 @@
-# Bentusk
+# Carowsle
 
 Seamless carousels, grid puzzles, a profile grid planner and highlight covers for Instagram, built natively for Android. Everything runs on the phone: no login, no watermark, no uploads.
 
@@ -10,12 +10,24 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Grid puzzle | 3×1 up to 3×5 tiles, numbered in posting order (bottom-right first) |
 | Grid preview | A 3-column planner with long-press drag to reorder, saved on the device |
 | Highlight covers | 146 icons on 26 backgrounds, exported at 1080×1920 and centred for the circle crop |
+| Safe zones | Overlay in the Studio and editors marking where Instagram's slide counter and tag icon sit, and where the 3:4 grid and 1:1 views crop the cover |
+| Stickers | Swipe nudges that run across a seam onto the next slide, and call-to-action banners for the closing slide, all editable text |
+| Video slides | Put a clip on any carousel slide, trim it (up to 60 s), mute it and frame it; it exports as a 1080-wide H.264 MP4 at 30 fps with the slide's text and stickers burned in, HDR clips tone-mapped to standard colour |
+| Moving text | Give any text on a carousel slide a gentle nudge or pulse; that slide exports as a 4.8 s seamless-looping MP4, and video slides keep their moving text too |
+| Export check | Before export, flags empty frames, photos enlarged past their resolution, text under the slide counter or tag icon, text too small to read on a phone, and clips under 3 s; tap a finding to jump to it |
+| Pinned posts | Pin up to 3 photos to the top of a grid plan and switch the plan between 3:4 and 1:1 views |
+| Archive import | Pick the ZIP from Instagram's "Download your information" (JSON) and your 60 newest posts and reels are laid under the plan, read on the phone only; re-importing skips posts already there |
+| Posting reminders | After an export, pick this evening, tomorrow morning or any time; a notification brings you back and hands the files to Instagram with the caption on the clipboard (grids tile by tile). Nothing is posted for you |
+| Colour palettes | 62 designer palettes in nine moods (Bold, Pastel, Earthy, Luxe, Fresh, Moody, Retro, Neon, Classic) under Backgrounds; one tap sets the background and recolours every text and label so it stays readable (WCAG AA), and the palette's colours are offered first when styling text |
+| Caption line breaks | Blank lines are copied with an invisible character so Instagram keeps paragraph spacing (can be turned off) |
+| Saved captions and hashtags | Save a caption line (a sign-off, shop details) or the hashtags you just used under a name, then add them to any later post in one tap; saved lines go before the hashtag line and sets respect the 5-hashtag limit. Stored on the phone only |
+| Reel covers and stories | A blank 9:16 design (Create → Reel cover or story): the first photo fills the screen, and safe zones show the centred 3:4 the profile grid keeps of a Reel cover plus where the caption, reply bar and Reel buttons sit; the export check flags text under them |
 
 ## Plans
 
 * **90-day free trial** with every feature unlocked, counted from first launch.
 * After the trial the core tools stay free, with one banner ad on the home screen only.
-* **Bentusk Pro** is a one-time ₹299 lifetime purchase (Play product id `bentusk_pro_lifetime`): no ads, carousels over 10 slides, PNG export, tile borders, gradient covers and multiple grid plans.
+* **Carowsle Pro** is a one-time ₹299 lifetime purchase (Play product id `bentusk_pro_lifetime`): no ads, carousels over 10 slides, PNG export, tile borders, gradient covers and multiple grid plans.
 
 The rules live in `engine/src/main/kotlin/com/bentusk/engine/Entitlement.kt`.
 
@@ -28,6 +40,7 @@ The `engine` module is plain Kotlin with no Android dependency, so the geometry 
 * Photos are decoded at the smallest power-of-two subsample that still gives at least one source pixel per output pixel, within a memory budget, so 50+ MP photos export at full detail without running out of memory.
 * EXIF orientation is applied as part of the transform rather than by rotating pixels.
 * Wide-gamut photos are converted to sRGB on decode, the colour space Instagram shows.
+* Photos drawn well below full size are first shrunk with a Lanczos-3 filter, streamed a few rows at a time, so fine detail stays clean instead of aliasing under a bilinear draw.
 * The editor preview draws with the same transform, backdrop and frame code as the exporter, so what you see is what is saved.
 
 Instagram dimensions are kept in one place: `engine/.../InstagramSpec.kt`.
@@ -38,7 +51,7 @@ Instagram dimensions are kept in one place: `engine/.../InstagramSpec.kt`.
 engine/   Pure Kotlin geometry, decode planning and plan rules, with tests
 app/      Android app (Kotlin, Jetpack Compose, Material 3, Hilt, Room, DataStore)
   core/image     decode, backdrop, tile renderer, export pipeline
-  core/storage   MediaStore saver ("Bentusk" album), share sheet
+  core/storage   MediaStore saver ("Carowsle" album), share sheet
   core/billing   Play Billing for the lifetime unlock
   core/ads       AdMob home banner
   feature/       home, editor (carousel + grid), export, planner, covers, pro

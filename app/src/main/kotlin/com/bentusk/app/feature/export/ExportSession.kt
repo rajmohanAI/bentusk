@@ -3,6 +3,7 @@ package com.bentusk.app.feature.export
 import android.graphics.Bitmap
 import com.bentusk.app.core.image.ExportFormat
 import com.bentusk.app.core.image.SliceJob
+import com.bentusk.app.core.image.DesignJob
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,14 +17,30 @@ class ExportSession @Inject constructor() {
         private set
     @Volatile var cover: CoverJob? = null
         private set
+    @Volatile var design: DesignJob? = null
+        private set
+
+    /** The caption being written for the current post; it survives going back to tweak the layout. */
+    @Volatile var caption: String = ""
 
     fun start(job: SliceJob) {
+        clear()
         slice = job
-        cover = null
     }
 
     fun start(job: CoverJob) {
+        clear()
         cover = job
+    }
+
+    fun start(job: DesignJob) {
+        clear()
+        design = job
+    }
+
+    private fun clear() {
         slice = null
+        cover = null
+        design = null
     }
 }

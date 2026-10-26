@@ -74,6 +74,7 @@ data class EditorState(
     val frame: FrameChoice = FrameChoice.None,
     val format: ExportFormat = ExportFormat.Jpeg,
     val showGuides: Boolean = true,
+    val showSafeZones: Boolean = false,
     val preview: PreviewPhoto? = null,
     val error: Boolean = false,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
@@ -230,6 +231,8 @@ class EditorViewModel @Inject constructor(
 
     fun toggleGuides() = _state.update { it.copy(showGuides = !it.showGuides) }
 
+    fun toggleSafeZones() = _state.update { it.copy(showSafeZones = !it.showSafeZones) }
+
     fun export() {
         val s = _state.value
         val preview = s.preview ?: return
@@ -242,7 +245,7 @@ class EditorViewModel @Inject constructor(
                 backdrop = s.backdrop.backdrop,
                 frame = s.frame.frame,
                 format = s.format,
-                filePrefix = if (s.mode == SliceMode.Carousel) "bentusk_carousel" else "bentusk_grid",
+                filePrefix = if (s.mode == SliceMode.Carousel) "carowsle_carousel" else "carowsle_grid",
             ),
         )
         _events.value = EditorEvent.OpenExport

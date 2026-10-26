@@ -57,6 +57,17 @@ data class GridLayout(override val rows: Int, val ratio: PostRatio) : SliceLayou
     override val tiles: List<Tile> = buildTiles(columns, rows, tileSize) { index -> columns * rows - index }
 }
 
+/**
+ * A single full-screen 9:16 picture, the shape of stories and Reels. Its post ratio does not apply:
+ * Instagram shows these full screen, and crops a Reel cover to a centred 3:4 on the profile grid.
+ */
+data object StoryLayout : SliceLayout {
+    override val tileSize get() = InstagramSpec.StorySize
+    override val columns get() = 1
+    override val rows get() = 1
+    override val tiles: List<Tile> = buildTiles(1, 1, InstagramSpec.StorySize) { 1 }
+}
+
 private fun buildTiles(columns: Int, rows: Int, tile: PxSize, postOrder: (Int) -> Int): List<Tile> =
     List(columns * rows) { index ->
         val row = index / columns

@@ -1,6 +1,9 @@
 package com.bentusk.app.ui.components
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,7 +21,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** Shows a small decoded copy of an image from a content URI or a private file path. */
+/** The first frame of a video, for showing exported video slides next to photos. */
+private fun videoFrame(context: Context, uri: Uri, maxSide: Int): ImageBitmap? = runCatching {
+    val retriever = MediaMetadataRetriever()
+    try {
+        retriever.setDataSource(context, uri)
+        val frame = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC) ?: return@runCatching null
+        val k = minOf(1.0, maxSide.toDouble() / maxOf(frame.width, frame.height))
+        val small = if (k < 1.0) {
+            Bitmap.createScaledBitmap(frame, maxOf(1, (frame.width * k).toInt()), maxOf(1, (frame.height * k).toInt()), true)
+        } else {
+            frame
+        }
+        small.asImageBitmap()
+    } finally {
+        retriever.release()
+    }
+}.getOrNull()
+
+/** Shows a small decoded copy of an image (or a video's first frame) from a content URI or a private file path. */
 @Composable
 fun Thumbnail(
     source: Any,
@@ -44,7 +65,7 @@ fun Thumbnail(
                 open()?.use {
                     BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
                 }?.asImageBitmap()
-            }.getOrNull()
+            }.getOrNull() ?: (source as? Uri)?.let { videoFrame(context, it, maxSide) }
         }
     }
     val bitmap = image

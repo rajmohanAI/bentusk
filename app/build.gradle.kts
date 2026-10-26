@@ -113,6 +113,7 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.work.runtime)
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.coroutines.android)
@@ -120,6 +121,10 @@ dependencies {
     implementation(libs.reorderable)
     implementation(libs.billing.ktx)
     implementation(libs.play.services.ads)
+    implementation(libs.mlkit.image.labeling)
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.common)
 
     testImplementation(libs.junit)
 }

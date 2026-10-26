@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Gradient
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.ViewCarousel
+import androidx.compose.material.icons.rounded.AutoAwesomeMosaic
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
@@ -114,6 +115,7 @@ fun ProScreen(onClose: () -> Unit, viewModel: ProViewModel = hiltViewModel()) {
 
             Feature(Icons.Rounded.Block, R.string.pro_feature_ads)
             Feature(Icons.Rounded.ViewCarousel, R.string.pro_feature_slides)
+            Feature(Icons.Rounded.AutoAwesomeMosaic, R.string.pro_feature_templates)
             Feature(Icons.Rounded.HighQuality, R.string.pro_feature_png)
             Feature(Icons.Rounded.BorderStyle, R.string.pro_feature_frames)
             Feature(Icons.Rounded.Gradient, R.string.pro_feature_covers)

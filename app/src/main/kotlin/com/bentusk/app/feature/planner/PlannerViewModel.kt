@@ -9,6 +9,7 @@ import com.bentusk.app.core.data.PlanEntity
 import com.bentusk.app.core.data.PlanItemEntity
 import com.bentusk.app.core.entitlement.EntitlementRepository
 import com.bentusk.engine.Entitlement
+import com.bentusk.engine.PinnedGrid
 import com.bentusk.engine.Plans
 import com.bentusk.engine.ProFeature
 import com.bentusk.engine.moved
@@ -30,6 +31,12 @@ data class PlannerState(
     val items: List<PlanItemEntity> = emptyList(),
     val adding: Boolean = false,
     val failedImports: Int = 0,
+    /** Shows the grid as squares, the way some embeds and older app versions crop it, instead of 3:4. */
+    val squarePreview: Boolean = false,
+    /** Set when the user tried to pin more posts than Instagram allows. */
+    val pinLimitHit: Boolean = false,
+    /** Outcome of the last archive import, shown once. */
+    val archiveResult: ArchiveImport? = null,
     val entitlement: Entitlement = Entitlement.Trial(Plans.TRIAL_DAYS),
 )
 
@@ -62,7 +69,7 @@ class PlannerViewModel @Inject constructor(
             selected.filterNotNull().flatMapLatest { id ->
                 _state.update { it.copy(selectedPlanId = id) }
                 repository.items(id)
-            }.collect { items -> if (!dragging) _state.update { it.copy(items = items) } }
+            }.collect { items -> if (!dragging) _state.update { it.copy(items = PinnedGrid.order(items) { i -> i.pinned }) } }
         }
         viewModelScope.launch { entitlements.entitlement.collect { e -> _state.update { it.copy(entitlement = e) } } }
     }
@@ -102,6 +109,35 @@ class PlannerViewModel @Inject constructor(
     }
 
     fun consumeFailures() = _state.update { it.copy(failedImports = 0) }
+
+    /** Lays the newest posts from the user's own Instagram archive ZIP under the plan. */
+    fun importArchive(zip: Uri) {
+        val id = _state.value.selectedPlanId ?: return
+        _state.update { it.copy(adding = true) }
+        viewModelScope.launch {
+            val result = repository.importArchive(id, zip)
+            _state.update { it.copy(adding = false, archiveResult = result) }
+        }
+    }
+
+    fun consumeArchiveResult() = _state.update { it.copy(archiveResult = null) }
+
+    fun setSquarePreview(on: Boolean) = _state.update { it.copy(squarePreview = on) }
+
+    /** Pins a post to the top of the grid, or unpins it. Instagram allows only a few pinned posts. */
+    fun togglePin(item: PlanItemEntity) {
+        if (!item.pinned && !PinnedGrid.canPin(_state.value.items.count { it.pinned })) {
+            _state.update { it.copy(pinLimitHit = true) }
+            return
+        }
+        val pinned = !item.pinned
+        // Pinning moves the post to the top; every other post keeps the place it has on screen.
+        val changed = _state.value.items.map { if (it.id == item.id) it.copy(pinned = pinned) else it }
+        val order = PinnedGrid.order(changed) { it.pinned }.map { it.id }
+        viewModelScope.launch { repository.setPinned(item, pinned, order) }
+    }
+
+    fun consumePinLimit() = _state.update { it.copy(pinLimitHit = false) }
 
     fun remove(item: PlanItemEntity) {
         viewModelScope.launch { repository.removeItem(item) }

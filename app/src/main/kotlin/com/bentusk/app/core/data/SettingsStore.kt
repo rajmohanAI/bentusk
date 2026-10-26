@@ -7,7 +7,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.bentusk.engine.CaptionLibrary
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -24,6 +27,10 @@ data class AppSettings(
     val proCached: Boolean,
     val exportCount: Int,
     val onboardingDone: Boolean,
+    /** The user agreed that Bentusk may open Instagram with their images and caption. */
+    val instagramConsent: Boolean,
+    /** Copy captions with invisible blank lines so Instagram keeps paragraph spacing. */
+    val keepLineBreaks: Boolean,
 )
 
 @Singleton
@@ -35,6 +42,10 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
         val ProCached = booleanPreferencesKey("pro_cached")
         val ExportCount = intPreferencesKey("export_count")
         val OnboardingDone = booleanPreferencesKey("onboarding_done")
+        val InstagramConsent = booleanPreferencesKey("instagram_consent")
+        val Favorites = stringSetPreferencesKey("favorite_templates")
+        val KeepLineBreaks = booleanPreferencesKey("keep_line_breaks")
+        val CaptionLibrary = stringPreferencesKey("caption_library")
     }
 
     val settings: Flow<AppSettings> = context.settings.data.map { p ->
@@ -44,6 +55,8 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
             proCached = p[Keys.ProCached] ?: false,
             exportCount = p[Keys.ExportCount] ?: 0,
             onboardingDone = p[Keys.OnboardingDone] ?: false,
+            instagramConsent = p[Keys.InstagramConsent] ?: false,
+            keepLineBreaks = p[Keys.KeepLineBreaks] ?: true,
         )
     }
 
@@ -67,5 +80,32 @@ class SettingsStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun setOnboardingDone() {
         context.settings.edit { it[Keys.OnboardingDone] = true }
+    }
+
+    suspend fun setInstagramConsent(granted: Boolean) {
+        context.settings.edit { it[Keys.InstagramConsent] = granted }
+    }
+
+    suspend fun setKeepLineBreaks(on: Boolean) {
+        context.settings.edit { it[Keys.KeepLineBreaks] = on }
+    }
+
+    /** Hashtag sets and captions the user saved for reuse. */
+    val captionLibrary: Flow<CaptionLibrary> = context.settings.data.map { CaptionLibrary.fromJson(it[Keys.CaptionLibrary]) }
+
+    suspend fun updateCaptionLibrary(change: (CaptionLibrary) -> CaptionLibrary) {
+        context.settings.edit { p ->
+            p[Keys.CaptionLibrary] = CaptionLibrary.toJson(change(CaptionLibrary.fromJson(p[Keys.CaptionLibrary])))
+        }
+    }
+
+    /** Ids of templates the user starred. */
+    val favorites: Flow<Set<String>> = context.settings.data.map { it[Keys.Favorites] ?: emptySet() }
+
+    suspend fun toggleFavorite(templateId: String) {
+        context.settings.edit { p ->
+            val now = p[Keys.Favorites] ?: emptySet()
+            p[Keys.Favorites] = if (templateId in now) now - templateId else now + templateId
+        }
     }
 }
