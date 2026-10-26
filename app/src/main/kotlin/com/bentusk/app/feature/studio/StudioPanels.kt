@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Panorama
 import androidx.compose.material.icons.rounded.Rotate90DegreesCw
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.TouchApp
@@ -55,6 +56,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,6 +85,7 @@ import com.bentusk.engine.Fill
 import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.Motion
 import com.bentusk.engine.Motions
+import com.bentusk.engine.NRect
 import com.bentusk.engine.Palette
 import com.bentusk.engine.PaletteMood
 import com.bentusk.engine.Palettes
@@ -95,6 +98,12 @@ import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.TextAlign
 import com.bentusk.engine.TextFont
 import com.bentusk.engine.TextLayer
+
+/** The whole canvas: a photo there already spans every slide. */
+private val FULL_CANVAS = NRect(0.0, 0.0, 1.0, 1.0)
+
+/** Furthest the zoom slider goes; pinching can go further. */
+private const val MAX_SLIDER_ZOOM = 4f
 
 /** Colours offered for text, pills and backgrounds. */
 object StudioPalette {
@@ -582,7 +591,7 @@ fun TextFont.family(): FontFamily = when (this) {
 
 /** Tools for the selected photo. */
 @Composable
-fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, onReplace: () -> Unit) {
+fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, carousel: Boolean, onReplace: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
             Modifier
@@ -600,6 +609,9 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, onReplace: () -> U
                 ToolButton(Icons.Rounded.Rotate90DegreesCw, stringResource(R.string.rotate), onClick = viewModel::rotateSelected)
                 ToolButton(Icons.Rounded.FitScreen, stringResource(R.string.fit_whole_photo), onClick = viewModel::fitSelected)
                 ToolButton(Icons.Rounded.CenterFocusStrong, stringResource(R.string.fill_frame), onClick = viewModel::fillSelected)
+                if (carousel && layer.rect != FULL_CANVAS) {
+                    ToolButton(Icons.Rounded.Panorama, stringResource(R.string.span_slides), onClick = viewModel::spanSelected)
+                }
             }
             ToolButton(Icons.Rounded.FlipToFront, stringResource(R.string.bring_forward)) { viewModel.restack(layer.id, true) }
             ToolButton(Icons.Rounded.FlipToBack, stringResource(R.string.send_backward)) { viewModel.restack(layer.id, false) }
@@ -607,6 +619,22 @@ fun PhotoTools(layer: PhotoLayer, viewModel: StudioViewModel, onReplace: () -> U
                 ToolButton(Icons.Rounded.Delete, stringResource(R.string.remove), onClick = viewModel::clearSelectedPhoto)
             }
             ToolButton(Icons.Rounded.Check, stringResource(R.string.done)) { viewModel.select(null) }
+        }
+        if (layer.uri != null && !layer.free) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.zoom), color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Slider(
+                    value = layer.framing.zoom.toFloat().coerceIn(1f, MAX_SLIDER_ZOOM),
+                    onValueChange = { viewModel.setZoom(it.toDouble()) },
+                    valueRange = 1f..MAX_SLIDER_ZOOM,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.White,
+                        activeTrackColor = Color.White,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.25f),
+                    ),
+                    modifier = Modifier.weight(1f).padding(start = 12.dp),
+                )
+            }
         }
         Text(
             stringResource(if (layer.free) R.string.free_photo_hint else R.string.template_gesture_hint),

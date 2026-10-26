@@ -299,4 +299,6 @@
     <string name="create_story_body">पूरी स्क्रीन वाला 9:16 डिज़ाइन, 3:4 ग्रिड क्रॉप और Instagram के बटनों की गाइड के साथ।</string>
     <string name="story_post_hint">इसे स्टोरी के रूप में शेयर करें, या अपने Reel का कवर बनाएँ: Instagram में Edit cover, फिर Add from camera roll पर टैप करें।</string>
     <string name="check_on_story">स्क्रीन पर</string>
+    <string name="zoom">ज़ूम</string>
+    <string name="span_slides">सभी स्लाइड पर</string>
 </resources>
