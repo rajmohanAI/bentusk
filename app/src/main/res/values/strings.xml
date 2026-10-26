@@ -285,4 +285,15 @@
     <string name="palette_retro">Retro</string>
     <string name="palette_neon">Neon</string>
     <string name="palette_classic">Classic</string>
+    <string name="saved_captions">Saved captions</string>
+    <string name="save_caption">Save caption</string>
+    <string name="saved_captions_empty">Save a sign-off or a line you use often, then add it to any post in one tap.</string>
+    <string name="saved_tags">★ Saved</string>
+    <string name="save_tags">Save these hashtags</string>
+    <string name="saved_tags_empty">Add hashtags to your caption, then tap Save these hashtags to reuse them.</string>
+    <string name="save_tags_title">Save hashtag set</string>
+    <string name="save_caption_title">Save caption</string>
+    <string name="save_name_label">Name (optional)</string>
+    <string name="save">Save</string>
+    <string name="remove_saved_title">Remove “%1$s”?</string>
 </resources>

@@ -166,6 +166,15 @@ fun ExportScreen(onDone: () -> Unit, viewModel: ExportViewModel = hiltViewModel(
                                 onWriteWithAi = viewModel::openAi,
                                 keepLineBreaks = state.keepLineBreaks,
                                 onKeepLineBreaks = viewModel::setKeepLineBreaks,
+                                library = state.library,
+                                actions = CaptionLibraryActions(
+                                    saveTags = viewModel::saveTags,
+                                    saveCaption = viewModel::saveCaption,
+                                    useTags = viewModel::useTags,
+                                    useCaption = viewModel::useCaption,
+                                    removeTags = viewModel::removeTags,
+                                    removeCaption = viewModel::removeCaption,
+                                ),
                             )
                         }
                     }
