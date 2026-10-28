@@ -20,6 +20,7 @@ billing = "8.0.0"
 playServicesAds = "24.4.0"
 junit = "4.13.2"
 mlkitImageLabeling = "17.0.9"
+mlkitSubjectSegmentation = "16.0.0-beta1"
 media3 = "1.8.0"
 work = "2.10.1"
 
@@ -58,6 +59,7 @@ billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = 
 play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
 junit = { module = "junit:junit", version.ref = "junit" }
 mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkitImageLabeling" }
+mlkit-subject-segmentation = { module = "com.google.android.gms:play-services-mlkit-subject-segmentation", version.ref = "mlkitSubjectSegmentation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

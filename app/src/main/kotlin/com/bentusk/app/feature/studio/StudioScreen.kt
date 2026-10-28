@@ -92,6 +92,8 @@ fun StudioScreen(
     val haptics = LocalHapticFeedback.current
     val lockedMessage = stringResource(R.string.locked_feature)
     val goPro = stringResource(R.string.go_pro)
+    val noSubjectMessage = stringResource(R.string.studio_shot_no_subject)
+    val shotFailedMessage = stringResource(R.string.studio_shot_failed)
     val failedMessage = pluralStringResource(R.plurals.import_failed, state.failedPhotos, state.failedPhotos)
     val pickMany = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(InstagramSpec.MAX_CAROUSEL_SLIDES)) {
         if (it.isNotEmpty()) viewModel.addPhotos(it)
@@ -119,6 +121,11 @@ fun StudioScreen(
                 viewModel.consumeEvent()
                 val result = snackbar.showSnackbar(lockedMessage, actionLabel = goPro, withDismissAction = true)
                 if (result == SnackbarResult.ActionPerformed) onUpgrade()
+            }
+            is StudioEvent.StudioShotFailed -> {
+                val noSubject = (event as StudioEvent.StudioShotFailed).noSubject
+                viewModel.consumeEvent()
+                snackbar.showSnackbar(if (noSubject) noSubjectMessage else shotFailedMessage, withDismissAction = true)
             }
             null -> Unit
         }

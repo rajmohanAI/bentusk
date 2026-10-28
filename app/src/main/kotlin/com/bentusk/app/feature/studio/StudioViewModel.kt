@@ -10,6 +10,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.bentusk.app.core.ai.NoSubjectException
+import com.bentusk.app.core.ai.StudioShotMaker
 import com.bentusk.app.core.data.ProjectStore
 import com.bentusk.app.core.entitlement.EntitlementRepository
 import com.bentusk.app.core.image.DesignJob
@@ -46,6 +48,7 @@ import com.bentusk.engine.RetroStyle
 import com.bentusk.engine.SliceLayout
 import com.bentusk.engine.SourceGeometry
 import com.bentusk.engine.StickerPlacement
+import com.bentusk.engine.StudioBackdrop
 import com.bentusk.engine.Stickers
 import com.bentusk.engine.TemplateKind
 import com.bentusk.engine.Templates
@@ -57,6 +60,7 @@ import com.bentusk.engine.toDesign
 import com.bentusk.engine.withRect
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -117,6 +121,8 @@ sealed interface StudioEvent {
     data class Locked(val feature: ProFeature) : StudioEvent
     /** Ask the photo picker for one photo for the selected slot. */
     data object PickOne : StudioEvent
+    /** A studio shot could not be made: no subject in the photo, or the cut-out model is not ready yet. */
+    data class StudioShotFailed(val noSubject: Boolean) : StudioEvent
 }
 
 @HiltViewModel
@@ -127,6 +133,7 @@ class StudioViewModel @Inject constructor(
     private val videos: VideoProbe,
     private val session: ExportSession,
     private val projects: ProjectStore,
+    private val shots: StudioShotMaker,
     entitlements: EntitlementRepository,
 ) : ViewModel() {
 
@@ -477,6 +484,38 @@ class StudioViewModel @Inject constructor(
         if (s.design.kind != TemplateKind.Carousel || layer.free || layer.video != null) return
         val spanned = layer.copy(rect = NRect(0.0, 0.0, 1.0, 1.0), framing = Framing.Default)
         commit(s.design.copy(layers = listOf(spanned) + s.design.layers.filterNot { it.id == layer.id }))
+    }
+
+    // Studio shot
+
+    /**
+     * Cuts the subject out of the selected photo on the phone and puts it on [backdrop], sized for its frame.
+     * The result replaces the photo as a new picture, so undo brings the original back.
+     */
+    fun studioShot(backdrop: StudioBackdrop) {
+        val s = _state.value
+        val layer = s.selectedLayer as? PhotoLayer ?: return
+        val uri = layer.uri ?: return
+        if (layer.video != null || s.busy) return
+        val slot = s.design.rectPx(layer, s.layout).size
+        viewModelScope.launch {
+            _state.update { it.copy(busy = true) }
+            try {
+                val key = shots.make(Uri.parse(uri), slot, backdrop).toString()
+                ensureLoaded(key) ?: return@launch
+                val current = _state.value.design.layer(layer.id) as? PhotoLayer ?: return@launch
+                commit(_state.value.design.replace(current.copy(uri = key, framing = Framing.Default)))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: NoSubjectException) {
+                _events.value = StudioEvent.StudioShotFailed(noSubject = true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Studio shot failed", e)
+                _events.value = StudioEvent.StudioShotFailed(noSubject = false)
+            } finally {
+                _state.update { it.copy(busy = false) }
+            }
+        }
     }
 
     // Retro
