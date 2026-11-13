@@ -329,4 +329,26 @@
     <string name="backdrop_sunset">Sunset</string>
     <string name="backdrop_charcoal">Charcoal</string>
     <string name="backdrop_midnight">Midnight</string>
+    <string name="video_maker">Video maker</string>
+    <string name="video_maker_body">Join clips and photos into one Reel or video post, trimmed and in order</string>
+    <string name="video_shape_reel">Reel</string>
+    <string name="video_shape_portrait">Post</string>
+    <string name="video_shape_square">Square</string>
+    <string name="video_empty">Add clips and photos. They play one after another, in the order you pick them.</string>
+    <string name="video_add">Add clips and photos</string>
+    <string name="video_play">Play</string>
+    <string name="video_pause">Pause</string>
+    <string name="video_too_long">Over %1$d min, too long for a Reel</string>
+    <string name="video_photo_time">On screen for %1$s</string>
+    <string name="video_trim_range">Plays %1$s to %2$s of %3$s</string>
+    <string name="video_split">Split here</string>
+    <string name="video_move_earlier">Earlier</string>
+    <string name="video_move_later">Later</string>
+    <string name="video_duplicate">Duplicate</string>
+    <string name="video_exporting">Making your video</string>
+    <string name="video_exporting_body">This runs on your phone and can take a minute for long videos. Keep the app open.</string>
+    <string name="video_cancel">Cancel</string>
+    <string name="video_saved">Saved to your gallery</string>
+    <string name="video_saved_body">Your video is in the gallery, ready to post as a Reel or a video post.</string>
+    <string name="video_export_failed">The video could not be made. Try shorter clips or another file.</string>
 </resources>

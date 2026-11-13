@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Panorama
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Search
@@ -117,6 +118,7 @@ fun HomeScreen(
     onOpenEditor: (SliceMode, Uri) -> Unit,
     onOpenPlanner: () -> Unit,
     onOpenCovers: () -> Unit,
+    onOpenVideoMaker: () -> Unit,
     onOpenPro: () -> Unit,
     onOpenStudio: (StudioRoute) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -243,6 +245,7 @@ fun HomeScreen(
                         onCovers = onOpenCovers,
                         onBlank = { onOpenStudio(StudioRoute(kind = TemplateKind.Carousel.name)) },
                         onStory = { onOpenStudio(StudioRoute(kind = TemplateKind.Story.name)) },
+                        onVideo = onOpenVideoMaker,
                     )
                     HomeTab.Grid -> GridTab(
                         query = query,
@@ -283,6 +286,10 @@ fun HomeScreen(
                 CreateOption(Icons.Rounded.PhoneAndroid, R.string.create_story, R.string.create_story_body) {
                     showCreate = false
                     onOpenStudio(StudioRoute(kind = TemplateKind.Story.name))
+                }
+                CreateOption(Icons.Rounded.Movie, R.string.video_maker, R.string.video_maker_body) {
+                    showCreate = false
+                    onOpenVideoMaker()
                 }
                 CreateOption(Icons.Rounded.Panorama, R.string.tool_carousel, R.string.tool_carousel_body) {
                     showCreate = false
@@ -387,6 +394,7 @@ private fun CarouselTab(
     onCovers: () -> Unit,
     onBlank: () -> Unit,
     onStory: () -> Unit,
+    onVideo: () -> Unit,
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
         if (query.isBlank()) {
@@ -396,6 +404,7 @@ private fun CarouselTab(
                         QuickTool(Icons.Rounded.Add, R.string.create_blank_carousel, onBlank),
                         QuickTool(Icons.Rounded.Panorama, R.string.tool_carousel, onPanorama),
                         QuickTool(Icons.Rounded.PhoneAndroid, R.string.create_story, onStory),
+                        QuickTool(Icons.Rounded.Movie, R.string.video_maker, onVideo),
                         QuickTool(Icons.Rounded.TripOrigin, R.string.tool_covers, onCovers),
                     ),
                 )
