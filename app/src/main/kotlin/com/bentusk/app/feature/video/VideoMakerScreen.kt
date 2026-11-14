@@ -8,6 +8,31 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FormatBold
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.automirrored.rounded.Label
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import com.bentusk.app.core.video.VideoOverlayRenderer
+import com.bentusk.app.feature.studio.family
+import com.bentusk.engine.Contrast
+import com.bentusk.engine.TextFont
+import com.bentusk.engine.VideoOverlay
+import com.bentusk.engine.VideoOverlays
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -113,6 +138,11 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
         viewModel.add(it)
     }
     val pickAny = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+    var elapsedForPick by remember { mutableLongStateOf(0L) }
+    val pickPicture = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.addImage(it, elapsedForPick) }
+    }
+    var writing by remember { mutableStateOf<TextEdit?>(null) }
     val failedMessage = stringResource(R.string.video_export_failed)
     val unreadableMessage = pluralStringResource(R.plurals.import_failed, state.unreadable, state.unreadable)
     LaunchedEffect(state.failed, state.unreadable) {
@@ -154,6 +184,7 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
     }
     val current = clips.getOrNull(index)
     val elapsed = (current?.let { state.timeline.startOf(it.id) } ?: 0L) + position.coerceAtMost(current?.lengthMs ?: 0L)
+    elapsedForPick = elapsed
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -206,6 +237,7 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                     } else {
                         PlayerSurface(player)
                         if (current?.photo == true) PhotoOnTop(current.uri, viewModel)
+                        OverlaysOnTop(state, elapsed, editing = state.mode == MakerMode.Layers, onDrag = viewModel::dragOverlay, onDragEnd = viewModel::endLive)
                         if (!playing) {
                             Icon(
                                 Icons.Rounded.PlayArrow,
@@ -236,22 +268,59 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                         )
                     }
                 }
-                ClipStrip(state, onSelect = viewModel::select, onAdd = { pick.launch(pickAny) })
-                state.selectedClip?.let { clip ->
-                    ClipTools(
-                        clip = clip,
-                        canSplit = current?.id == clip.id,
-                        onTrim = viewModel::trim,
-                        onTrimDone = viewModel::trimDone,
-                        onSplit = { viewModel.split(position) },
-                        onMute = viewModel::toggleMute,
-                        onMove = viewModel::move,
-                        onDuplicate = viewModel::duplicate,
-                        onRemove = viewModel::remove,
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.mode == MakerMode.Clips,
+                        onClick = { viewModel.setMode(MakerMode.Clips) },
+                        label = { Text(stringResource(R.string.video_mode_clips)) },
                     )
+                    FilterChip(
+                        selected = state.mode == MakerMode.Layers,
+                        onClick = { viewModel.setMode(MakerMode.Layers) },
+                        label = { Text(stringResource(R.string.video_mode_layers)) },
+                    )
+                }
+                Column(Modifier.heightIn(max = TOOLS_MAX_HEIGHT).verticalScroll(rememberScrollState())) {
+                    when (state.mode) {
+                        MakerMode.Clips -> {
+                            ClipStrip(state, onSelect = viewModel::select, onAdd = { pick.launch(pickAny) })
+                            state.selectedClip?.let { clip ->
+                                ClipTools(
+                                    clip = clip,
+                                    canSplit = current?.id == clip.id,
+                                    onTrim = viewModel::trim,
+                                    onTrimDone = viewModel::trimDone,
+                                    onSplit = { viewModel.split(position) },
+                                    onMute = viewModel::toggleMute,
+                                    onMove = viewModel::move,
+                                    onDuplicate = viewModel::duplicate,
+                                    onRemove = viewModel::remove,
+                                )
+                            }
+                        }
+                        MakerMode.Layers -> LayerTools(
+                            state = state,
+                            elapsed = elapsed,
+                            viewModel = viewModel,
+                            onAddText = { writing = TextEdit.New },
+                            onEditText = { writing = TextEdit.Existing },
+                            onAddImage = { pickPicture.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        )
+                    }
                 }
             }
         }
+    }
+
+    writing?.let { mode ->
+        TextDialog(
+            initial = if (mode == TextEdit.Existing) state.overlay?.text.orEmpty() else "",
+            onDismiss = { writing = null },
+            onDone = { text ->
+                if (mode == TextEdit.New) viewModel.addText(text, elapsed) else viewModel.editText(text)
+                writing = null
+            },
+        )
     }
 
     state.progress?.let { p ->
@@ -478,6 +547,201 @@ private fun clock(ms: Long): String {
     val s = ms / 1000
     return "%d:%02d".format(s / 60, s % 60)
 }
+
+private enum class TextEdit { New, Existing }
+
+/** Colours for text and labels: white and black first, then the app's accents and a few strong hues. */
+private val TextColors = listOf(
+    0xFFFFFFFF, 0xFF000000, 0xFFE6C17E, 0xFFFF7A6B, 0xFF8FB8FF, 0xFFFFD54F, 0xFF66BB6A, 0xFFEC407A, 0xFF7E57C2,
+).map { it.toInt() }
+
+/** The text and pictures on screen at [elapsed], plus the selected one while editing, drawn as the export draws them. */
+@Composable
+private fun OverlaysOnTop(state: VideoMakerState, elapsed: Long, editing: Boolean, onDrag: (Double, Double) -> Unit, onDragEnd: () -> Unit) {
+    val timeline = state.timeline
+    val selected = if (editing) state.overlay else null
+    val shown = VideoOverlays.visibleAt(timeline, elapsed).let { v -> if (selected != null && selected !in v) v + selected else v }
+    if (shown.isEmpty()) return
+    val frame = timeline.shape.size
+    val gold = BentuskColors.Gold
+    Canvas(
+        Modifier
+            .fillMaxSize()
+            .then(
+                if (selected == null) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(selected.id) {
+                        detectDragGestures(onDragEnd = onDragEnd, onDragCancel = onDragEnd) { change, drag ->
+                            change.consume()
+                            onDrag(drag.x.toDouble() / size.width, drag.y.toDouble() / size.height)
+                        }
+                    }
+                },
+            ),
+    ) {
+        val k = size.width / frame.width
+        drawIntoCanvas { c ->
+            c.nativeCanvas.save()
+            c.nativeCanvas.scale(k, k)
+            VideoOverlayRenderer.draw(c.nativeCanvas, frame, shown, state.overlayImages)
+            c.nativeCanvas.restore()
+        }
+        selected?.let { o ->
+            drawRect(
+                gold,
+                topLeft = Offset((o.rect.left * size.width).toFloat(), (o.rect.top * size.height).toFloat()),
+                size = Size(((o.rect.right - o.rect.left) * size.width).toFloat(), ((o.rect.bottom - o.rect.top) * size.height).toFloat()),
+                style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f))),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LayerTools(
+    state: VideoMakerState,
+    elapsed: Long,
+    viewModel: VideoMakerViewModel,
+    onAddText: () -> Unit,
+    onEditText: () -> Unit,
+    onAddImage: () -> Unit,
+) {
+    val timeline = state.timeline
+    val canAdd = timeline.overlays.size < VideoOverlays.MAX_OVERLAYS
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AssistChip(onClick = onAddText, enabled = canAdd, label = { Text(stringResource(R.string.video_add_text)) }, leadingIcon = {
+                Icon(Icons.Rounded.TextFields, null)
+            })
+            AssistChip(onClick = onAddImage, enabled = canAdd, label = { Text(stringResource(R.string.video_add_picture)) }, leadingIcon = {
+                Icon(Icons.Rounded.AddPhotoAlternate, null)
+            })
+            timeline.overlays.forEachIndexed { i, o ->
+                FilterChip(
+                    selected = o.id == state.selectedOverlay,
+                    onClick = { viewModel.selectOverlay(if (o.id == state.selectedOverlay) null else o.id) },
+                    label = {
+                        Text(
+                            o.text?.take(LABEL_CHARS) ?: stringResource(R.string.video_picture_n, i + 1),
+                            maxLines = 1,
+                        )
+                    },
+                )
+            }
+        }
+        if (timeline.overlays.isEmpty()) {
+            Text(
+                stringResource(R.string.video_layers_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        val o = state.overlay ?: return@Column
+        val total = maxOf(timeline.totalMs, VideoTimeline.MIN_PIECE_MS)
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.video_shows_range, clock(o.startMs), clock(o.endMs)),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = {
+                val length = o.endMs - o.startMs
+                viewModel.setOverlayTimes(elapsed, elapsed + length)
+                viewModel.endLive()
+            }) { Text(stringResource(R.string.video_start_here)) }
+        }
+        RangeSlider(
+            value = o.startMs.toFloat().coerceAtMost(total.toFloat())..o.endMs.toFloat().coerceAtMost(total.toFloat()),
+            onValueChange = { viewModel.setOverlayTimes(it.start.toLong(), it.endInclusive.toLong()) },
+            onValueChangeFinished = viewModel::endLive,
+            valueRange = 0f..total.toFloat(),
+        )
+        if (o.isText) {
+            Text(stringResource(R.string.video_text_size), style = MaterialTheme.typography.labelLarge)
+            Slider(
+                value = o.size.toFloat(),
+                onValueChange = { viewModel.setTextSize(it.toDouble()) },
+                onValueChangeFinished = viewModel::endLive,
+                valueRange = VideoOverlay.MIN_TEXT_SIZE.toFloat()..VideoOverlay.MAX_TEXT_SIZE.toFloat(),
+            )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (c in TextColors) {
+                    Box(
+                        Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(c))
+                            .border(if (o.argb == c) 3.dp else 1.dp, if (o.argb == c) BentuskColors.Gold else BentuskColors.Mist, CircleShape)
+                            .clickable { viewModel.setOverlayColor(c) },
+                    )
+                }
+            }
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (font in TextFont.entries) {
+                    FilterChip(
+                        selected = o.font == font,
+                        onClick = { viewModel.setOverlayFont(font) },
+                        label = { Text(font.name, fontFamily = font.family()) },
+                    )
+                }
+            }
+        } else {
+            Text(stringResource(R.string.video_picture_size), style = MaterialTheme.typography.labelLarge)
+            Slider(
+                value = (o.rect.right - o.rect.left).toFloat(),
+                onValueChange = { viewModel.setImageWidth(it.toDouble()) },
+                onValueChangeFinished = viewModel::endLive,
+                valueRange = 0.1f..1f,
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            if (o.isText) {
+                Tool(Icons.Rounded.Edit, R.string.video_edit_text, onClick = onEditText)
+                Tool(Icons.Rounded.FormatBold, R.string.video_bold) { viewModel.toggleBold() }
+                // A dark label behind light text, or a light one behind dark text.
+                Tool(Icons.AutoMirrored.Rounded.Label, R.string.video_label) {
+                    viewModel.togglePill(if (Contrast.luminance(o.argb) > 0.5) LABEL_DARK else LABEL_LIGHT)
+                }
+            }
+            Tool(Icons.Rounded.Delete, R.string.remove, onClick = viewModel::removeOverlay)
+        }
+        Text(
+            stringResource(R.string.video_drag_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun TextDialog(initial: String, onDismiss: () -> Unit, onDone: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.video_add_text)) },
+        text = { OutlinedTextField(value = text, onValueChange = { text = it.take(MAX_TEXT_CHARS) }, minLines = 2) },
+        confirmButton = { Button(onClick = { onDone(text) }, enabled = text.isNotBlank()) { Text(stringResource(R.string.done)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.video_cancel)) } },
+    )
+}
+
+private const val LABEL_CHARS = 12
+private const val MAX_TEXT_CHARS = 200
+private val LABEL_DARK = 0xCC000000.toInt()
+private val LABEL_LIGHT = 0xE6FFFFFF.toInt()
+private val TOOLS_MAX_HEIGHT = 300.dp
 
 private const val VIDEO_MIME = "video/mp4"
 private const val PLAYLIST_DEBOUNCE_MS = 250L

@@ -350,4 +350,18 @@
     <string name="video_saved">आपकी गैलरी में सेव हो गया</string>
     <string name="video_saved_body">आपका वीडियो गैलरी में है, रील या वीडियो पोस्ट के रूप में पोस्ट करने के लिए तैयार।</string>
     <string name="video_export_failed">वीडियो नहीं बन सका। छोटी क्लिप या दूसरी फ़ाइल आज़माएँ।</string>
+    <string name="video_mode_clips">क्लिप</string>
+    <string name="video_mode_layers">टेक्स्ट और तस्वीरें</string>
+    <string name="video_add_text">टेक्स्ट जोड़ें</string>
+    <string name="video_add_picture">तस्वीर जोड़ें</string>
+    <string name="video_picture_n">तस्वीर %1$d</string>
+    <string name="video_layers_hint">टेक्स्ट और तस्वीरें प्लेहेड से वीडियो के ऊपर दिखती हैं। बदलने के लिए किसी एक को चुनें।</string>
+    <string name="video_shows_range">%1$s से %2$s तक दिखेगा</string>
+    <string name="video_start_here">यहाँ से शुरू</string>
+    <string name="video_text_size">आकार</string>
+    <string name="video_bold">बोल्ड</string>
+    <string name="video_picture_size">आकार</string>
+    <string name="video_edit_text">बदलें</string>
+    <string name="video_label">लेबल</string>
+    <string name="video_drag_hint">हिलाने के लिए इसे प्रीव्यू पर खींचें।</string>
 </resources>

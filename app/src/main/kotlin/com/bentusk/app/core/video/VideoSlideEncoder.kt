@@ -117,9 +117,15 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
 
     /**
      * Encodes a video maker timeline: its clips and photos one after another, each scaled to cover a frame of
-     * [VideoTimeline.shape]'s size. Photos and muted clips play silence, so the sound stays in step with the picture.
+     * [VideoTimeline.shape]'s size, under [overlay]. Photos and muted clips play silence, so the sound stays in step
+     * with the picture.
      */
-    suspend fun encodeTimeline(timeline: VideoTimeline, output: File, onProgress: (Float) -> Unit = {}) {
+    suspend fun encodeTimeline(
+        timeline: VideoTimeline,
+        output: File,
+        overlay: TimelineOverlay? = null,
+        onProgress: (Float) -> Unit = {},
+    ) {
         val size = timeline.shape.size
         val cover = Presentation.createForWidthAndHeight(size.width, size.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
         val items = timeline.clips.map { c ->
@@ -148,12 +154,20 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
             }
         }
         val sequence = EditedMediaItemSequence.Builder(items).experimentalSetForceAudioTrack(true).build()
-        transform(sequence, output, onProgress)
+        // Text and pictures go on the joined video, so their times are timeline times rather than clip times.
+        val effects = overlay?.let { Effects(emptyList(), listOf<Effect>(OverlayEffect(ImmutableList.of<TextureOverlay>(it)))) }
+        transform(sequence, output, onProgress, effects)
     }
 
     /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
-    private suspend fun transform(sequence: EditedMediaItemSequence, output: File, onProgress: (Float) -> Unit) = withContext(Dispatchers.Main) {
+    private suspend fun transform(
+        sequence: EditedMediaItemSequence,
+        output: File,
+        onProgress: (Float) -> Unit,
+        effects: Effects? = null,
+    ) = withContext(Dispatchers.Main) {
         val composition = Composition.Builder(sequence).apply {
+            if (effects != null) setEffects(effects)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
             }
