@@ -155,7 +155,7 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
         }
         val sequence = EditedMediaItemSequence.Builder(items).experimentalSetForceAudioTrack(true).build()
         // Text and pictures go on the joined video, so their times are timeline times rather than clip times.
-        val effects = overlay?.let { Effects(emptyList(), listOf<Effect>(OverlayEffect(ImmutableList.of(it)))) }
+        val effects = overlay?.let { Effects(emptyList(), listOf<Effect>(OverlayEffect(ImmutableList.of<TextureOverlay>(it)))) }
         transform(sequence, output, onProgress, effects)
     }
 
