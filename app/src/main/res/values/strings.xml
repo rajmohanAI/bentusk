@@ -365,4 +365,14 @@
     <string name="video_edit_text">Edit</string>
     <string name="video_label">Label</string>
     <string name="video_drag_hint">Drag it on the preview to move it.</string>
+    <string name="video_mode_transitions">Transitions</string>
+    <string name="video_transition_none">None</string>
+    <string name="video_transition_fade">Fade</string>
+    <string name="video_transition_flash">Flash</string>
+    <string name="video_transition_zoom">Zoom</string>
+    <string name="video_transition_whip">Whip</string>
+    <string name="video_transition_into">From clip %1$d into clip %2$d</string>
+    <string name="video_transition_all">Use on every cut</string>
+    <string name="video_transition_pick">Pick a clip after the first to choose how it comes in.</string>
+    <string name="video_fade_ends">Fade in at the start and out at the end</string>
 </resources>

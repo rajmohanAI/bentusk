@@ -15,6 +15,7 @@ import com.bentusk.app.core.storage.MediaSaver
 import com.bentusk.app.core.video.TimelineOverlay
 import com.bentusk.app.core.video.VideoProbe
 import com.bentusk.app.core.video.VideoSlideEncoder
+import com.bentusk.engine.CutTransition
 import com.bentusk.engine.DecodePlan
 import com.bentusk.engine.ExifOrientation
 import com.bentusk.engine.TextFont
@@ -22,6 +23,7 @@ import com.bentusk.engine.VideoOverlay
 import com.bentusk.engine.VideoOverlays
 import com.bentusk.engine.VideoShape
 import com.bentusk.engine.VideoTimeline
+import com.bentusk.engine.VideoTransitions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -61,8 +63,8 @@ data class VideoMakerState(
     val overlay get() = selectedOverlay?.let { id -> timeline.overlays.firstOrNull { it.id == id } }
 }
 
-/** Whether the tools below the preview edit the clips or the text and pictures on top. */
-enum class MakerMode { Clips, Layers }
+/** Whether the tools below the preview edit the clips, the text and pictures on top, or the cuts between clips. */
+enum class MakerMode { Clips, Layers, Transitions }
 
 /**
  * The video maker: clips and photos joined one after another, trimmed, split and reordered, then encoded on the
@@ -239,6 +241,18 @@ class VideoMakerViewModel @Inject constructor(
         _state.update { it.copy(selected = clips.getOrNull(index.coerceAtMost(clips.size - 1))?.id) }
     }
 
+    // Transitions
+
+    /** Sets how the selected piece comes in from the one before it. */
+    fun setTransition(transition: CutTransition) {
+        val id = _state.value.selected ?: return
+        edit { it.setTransition(id, transition) }
+    }
+
+    fun setAllTransitions(transition: CutTransition) = edit { it.setAllTransitions(transition) }
+
+    fun toggleFadeEnds() = edit { it.copy(fadeEnds = !it.fadeEnds) }
+
     // Text and pictures
 
     fun setMode(mode: MakerMode) = _state.update { it.copy(mode = mode) }
@@ -323,7 +337,8 @@ class VideoMakerViewModel @Inject constructor(
             val name = "Carowsle_video_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.mp4"
             val temp = File(context.cacheDir, name)
             try {
-                val overlay = if (timeline.overlays.isEmpty()) null else TimelineOverlay(timeline, _state.value.overlayImages)
+                val needsOverlay = timeline.overlays.isNotEmpty() || VideoTransitions.any(timeline)
+                val overlay = if (needsOverlay) TimelineOverlay(timeline, _state.value.overlayImages) else null
                 try {
                     encoder.encodeTimeline(timeline, temp, overlay) { p -> _state.update { it.copy(progress = p) } }
                 } finally {

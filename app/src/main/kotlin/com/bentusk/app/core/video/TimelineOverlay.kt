@@ -12,6 +12,7 @@ import com.bentusk.engine.PxSize
 import com.bentusk.engine.VideoOverlay
 import com.bentusk.engine.VideoOverlays
 import com.bentusk.engine.VideoTimeline
+import com.bentusk.engine.VideoTransitions
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -40,8 +41,9 @@ object VideoOverlayRenderer {
 }
 
 /**
- * The timeline's overlays as one full-frame bitmap for the encoder. It is redrawn only when the set of overlays on
- * screen changes, into the other of two bitmaps, so the one being uploaded is never the one being drawn.
+ * The timeline's overlays as one full-frame bitmap for the encoder, over the dip to black or white of any
+ * transition playing. It is redrawn only when what is on screen changes, into the other of two bitmaps, so the
+ * one being uploaded is never the one being drawn.
  */
 @OptIn(UnstableApi::class)
 class TimelineOverlay(
@@ -49,19 +51,22 @@ class TimelineOverlay(
     private val images: Map<String, Bitmap>,
 ) : BitmapOverlay() {
     private val size = timeline.shape.size
+    private val cuts = VideoTransitions.cuts(timeline)
     private val buffers = Array(2) { Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888) }
     private var current = 0
-    private var shown: List<Long>? = null
+    private var shown: Pair<List<Long>, Int>? = null
 
     override fun getBitmap(presentationTimeUs: Long): Bitmap {
-        val visible = VideoOverlays.visibleAt(timeline, (presentationTimeUs / 1000.0).roundToInt().toLong())
-        val ids = visible.map { it.id }
-        if (ids != shown) {
+        val ms = (presentationTimeUs / 1000.0).roundToInt().toLong()
+        val visible = VideoOverlays.visibleAt(timeline, ms)
+        val dip = VideoTransitions.frame(timeline, cuts, ms).dip
+        val key = visible.map { it.id } to dip
+        if (key != shown) {
             current = 1 - current
             val bitmap = buffers[current]
-            bitmap.eraseColor(0)
+            bitmap.eraseColor(dip)
             VideoOverlayRenderer.draw(Canvas(bitmap), size, visible, images)
-            shown = ids
+            shown = key
         }
         return buffers[current]
     }

@@ -33,6 +33,15 @@ import com.bentusk.engine.Contrast
 import com.bentusk.engine.TextFont
 import com.bentusk.engine.VideoOverlay
 import com.bentusk.engine.VideoOverlays
+import com.bentusk.engine.CutTransition
+import com.bentusk.engine.TransitionFrame
+import com.bentusk.engine.VideoTransitions
+import android.view.LayoutInflater
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -162,7 +171,9 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
     val clips = state.timeline.clips
 
     // Rebuild the preview's playlist a moment after the timeline changes, so a trim drag doesn't rebuild it per frame.
-    LaunchedEffect(clips) {
+    // Transitions are drawn over the player, so changing one leaves the playlist alone.
+    val media = remember(clips) { clips.map { it.copy(transition = CutTransition.None) } }
+    LaunchedEffect(media) {
         delay(PLAYLIST_DEBOUNCE_MS)
         val keepIndex = player.currentMediaItemIndex.coerceIn(0, (clips.size - 1).coerceAtLeast(0))
         val keepPosition = player.currentPosition
@@ -185,6 +196,25 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
     val current = clips.getOrNull(index)
     val elapsed = (current?.let { state.timeline.startOf(it.id) } ?: 0L) + position.coerceAtMost(current?.lengthMs ?: 0L)
     elapsedForPick = elapsed
+
+    // Transitions are short, so while there are any the preview follows the player every frame rather than every tick.
+    val timelineNow by rememberUpdatedState(state.timeline)
+    val animated = VideoTransitions.any(state.timeline)
+    var frameMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(player, animated) {
+        while (animated) {
+            withFrameMillis { }
+            val t = timelineNow
+            val c = t.clips.getOrNull(player.currentMediaItemIndex)
+            frameMs = (c?.let { t.startOf(it.id) } ?: 0L) + player.currentPosition.coerceAtMost(c?.lengthMs ?: 0L)
+        }
+    }
+    val motion: (Long) -> TransitionFrame = remember(state.timeline) {
+        val timeline = state.timeline
+        val cuts = VideoTransitions.cuts(timeline)
+        val f: (Long) -> TransitionFrame = { ms -> if (animated) VideoTransitions.frame(timeline, cuts, ms) else TransitionFrame.Still }
+        f
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -235,8 +265,21 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                     if (clips.isEmpty()) {
                         EmptyPrompt { pick.launch(pickAny) }
                     } else {
-                        PlayerSurface(player)
-                        if (current?.photo == true) PhotoOnTop(current.uri, viewModel)
+                        Box(
+                            Modifier.fillMaxSize().graphicsLayer {
+                                val f = motion(frameMs)
+                                scaleX = f.scale.toFloat()
+                                scaleY = f.scale.toFloat()
+                                translationX = (f.shift * size.width).toFloat()
+                            },
+                        ) {
+                            PlayerSurface(player)
+                            if (current?.photo == true) PhotoOnTop(current.uri, viewModel)
+                        }
+                        Canvas(Modifier.fillMaxSize()) {
+                            val f = motion(frameMs)
+                            if (f.dipAlpha > 0) drawRect(Color(f.dip))
+                        }
                         OverlaysOnTop(state, elapsed, editing = state.mode == MakerMode.Layers, onDrag = viewModel::dragOverlay, onDragEnd = viewModel::endLive)
                         if (!playing) {
                             Icon(
@@ -268,7 +311,10 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                         )
                     }
                 }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     FilterChip(
                         selected = state.mode == MakerMode.Clips,
                         onClick = { viewModel.setMode(MakerMode.Clips) },
@@ -278,6 +324,11 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                         selected = state.mode == MakerMode.Layers,
                         onClick = { viewModel.setMode(MakerMode.Layers) },
                         label = { Text(stringResource(R.string.video_mode_layers)) },
+                    )
+                    FilterChip(
+                        selected = state.mode == MakerMode.Transitions,
+                        onClick = { viewModel.setMode(MakerMode.Transitions) },
+                        label = { Text(stringResource(R.string.video_mode_transitions)) },
                     )
                 }
                 Column(Modifier.heightIn(max = TOOLS_MAX_HEIGHT).verticalScroll(rememberScrollState())) {
@@ -297,6 +348,18 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                                     onRemove = viewModel::remove,
                                 )
                             }
+                        }
+                        MakerMode.Transitions -> {
+                            ClipStrip(state, onSelect = viewModel::select, onAdd = { pick.launch(pickAny) })
+                            TransitionTools(
+                                state = state,
+                                onPick = { t ->
+                                    viewModel.setTransition(t)
+                                    if (t != CutTransition.None) playCut(player, clips, state.selected)
+                                },
+                                onAll = viewModel::setAllTransitions,
+                                onFadeEnds = viewModel::toggleFadeEnds,
+                            )
                         }
                         MakerMode.Layers -> LayerTools(
                             state = state,
@@ -365,7 +428,8 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
 private fun PlayerSurface(player: ExoPlayer) {
     AndroidView(
         factory = { ctx ->
-            PlayerView(ctx).apply {
+            // A TextureView rather than the default SurfaceView, so the preview can be zoomed and moved for transitions.
+            (LayoutInflater.from(ctx).inflate(R.layout.video_preview_player, null) as PlayerView).apply {
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 setShutterBackgroundColor(android.graphics.Color.BLACK)
@@ -425,6 +489,14 @@ private fun ClipStrip(state: VideoMakerState, onSelect: (Long) -> Unit, onAdd: (
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.align(Alignment.TopStart).background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 4.dp),
                 )
+                if (i > 0 && clip.transition != CutTransition.None) {
+                    Icon(
+                        Icons.Rounded.AutoAwesome,
+                        stringResource(transitionName(clip.transition)),
+                        tint = BentuskColors.Gold,
+                        modifier = Modifier.align(Alignment.TopEnd).background(Color.Black.copy(alpha = 0.5f)).padding(2.dp).size(14.dp),
+                    )
+                }
                 Text(
                     clock(clip.lengthMs),
                     color = Color.White,
@@ -539,6 +611,65 @@ private fun mediaItem(context: Context, clip: TimelineClip): MediaItem {
                 MediaItem.ClippingConfiguration.Builder().setStartPositionMs(clip.startMs).setEndPositionMs(clip.endMs).build(),
             )
             .build()
+    }
+}
+
+/** Plays the second before the selected piece's cut, so a newly picked transition shows straight away. */
+private fun playCut(player: ExoPlayer, clips: List<TimelineClip>, selected: Long?) {
+    val i = clips.indexOfFirst { it.id == selected }
+    if (i <= 0 || i - 1 >= player.mediaItemCount) return
+    player.seekTo(i - 1, (clips[i - 1].lengthMs - CUT_LEAD_MS).coerceAtLeast(0))
+    player.play()
+}
+
+private fun transitionName(t: CutTransition): Int = when (t) {
+    CutTransition.None -> R.string.video_transition_none
+    CutTransition.Fade -> R.string.video_transition_fade
+    CutTransition.Flash -> R.string.video_transition_flash
+    CutTransition.Zoom -> R.string.video_transition_zoom
+    CutTransition.Whip -> R.string.video_transition_whip
+}
+
+/** How the selected piece comes in from the one before, and the fade at the very start and end. */
+@Composable
+private fun TransitionTools(
+    state: VideoMakerState,
+    onPick: (CutTransition) -> Unit,
+    onAll: (CutTransition) -> Unit,
+    onFadeEnds: () -> Unit,
+) {
+    val clips = state.timeline.clips
+    val clip = state.selectedClip
+    val i = clip?.let { c -> clips.indexOfFirst { it.id == c.id } } ?: -1
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        if (clip == null || i <= 0) {
+            Text(
+                stringResource(R.string.video_transition_pick),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(stringResource(R.string.video_transition_into, i, i + 1), style = MaterialTheme.typography.labelLarge)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (t in CutTransition.entries) {
+                    FilterChip(
+                        selected = clip.transition == t,
+                        onClick = { onPick(t) },
+                        label = { Text(stringResource(transitionName(t))) },
+                    )
+                }
+            }
+            if (clips.size > 2) {
+                TextButton(onClick = { onAll(clip.transition) }) { Text(stringResource(R.string.video_transition_all)) }
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.video_fade_ends), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+            Switch(checked = state.timeline.fadeEnds, onCheckedChange = { onFadeEnds() })
+        }
     }
 }
 
@@ -746,3 +877,4 @@ private val TOOLS_MAX_HEIGHT = 300.dp
 private const val VIDEO_MIME = "video/mp4"
 private const val PLAYLIST_DEBOUNCE_MS = 250L
 private const val TICK_MS = 200L
+private const val CUT_LEAD_MS = 1_000L

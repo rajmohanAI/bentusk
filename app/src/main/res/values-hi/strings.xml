@@ -364,4 +364,14 @@
     <string name="video_edit_text">बदलें</string>
     <string name="video_label">लेबल</string>
     <string name="video_drag_hint">हिलाने के लिए इसे प्रीव्यू पर खींचें।</string>
+    <string name="video_mode_transitions">ट्रांज़िशन</string>
+    <string name="video_transition_none">कोई नहीं</string>
+    <string name="video_transition_fade">फ़ेड</string>
+    <string name="video_transition_flash">फ़्लैश</string>
+    <string name="video_transition_zoom">ज़ूम</string>
+    <string name="video_transition_whip">स्वाइप</string>
+    <string name="video_transition_into">क्लिप %1$d से क्लिप %2$d में</string>
+    <string name="video_transition_all">हर कट पर लगाएँ</string>
+    <string name="video_transition_pick">पहली के बाद की कोई क्लिप चुनें, फिर तय करें कि वह कैसे आए।</string>
+    <string name="video_fade_ends">शुरू में फ़ेड इन और आख़िर में फ़ेड आउट</string>
 </resources>
