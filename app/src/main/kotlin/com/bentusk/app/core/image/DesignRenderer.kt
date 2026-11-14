@@ -180,9 +180,13 @@ object DesignRenderer {
         return Typeface.create(family, if (bold) Typeface.BOLD else Typeface.NORMAL)
     }
 
-    private fun drawText(canvas: Canvas, rect: PxRect, layer: TextLayer, layout: SliceLayout) {
+    private fun drawText(canvas: Canvas, rect: PxRect, layer: TextLayer, layout: SliceLayout) =
+        drawText(canvas, rect, layer, layout.tileSize.height)
+
+    /** Draws [layer] in [rect], its size a fraction of [unitHeight] pixels (a tile's height, or a video frame's). */
+    fun drawText(canvas: Canvas, rect: PxRect, layer: TextLayer, unitHeight: Int) {
         if (layer.text.isBlank()) return
-        val size = (layer.size * layout.tileSize.height).toFloat()
+        val size = (layer.size * unitHeight).toFloat()
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = layer.argb
             textSize = size

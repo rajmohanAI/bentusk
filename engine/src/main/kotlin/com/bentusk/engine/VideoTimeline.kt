@@ -36,6 +36,8 @@ data class TimelineClip(
 data class VideoTimeline(
     val clips: List<TimelineClip> = emptyList(),
     val shape: VideoShape = VideoShape.Reel,
+    /** Text and pictures over the video, bottom to top. */
+    val overlays: List<VideoOverlay> = emptyList(),
 ) {
     val totalMs: Long get() = clips.sumOf { it.lengthMs }
 

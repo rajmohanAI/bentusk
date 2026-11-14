@@ -351,4 +351,18 @@
     <string name="video_saved">Saved to your gallery</string>
     <string name="video_saved_body">Your video is in the gallery, ready to post as a Reel or a video post.</string>
     <string name="video_export_failed">The video could not be made. Try shorter clips or another file.</string>
+    <string name="video_mode_clips">Clips</string>
+    <string name="video_mode_layers">Text &amp; pictures</string>
+    <string name="video_add_text">Add text</string>
+    <string name="video_add_picture">Add picture</string>
+    <string name="video_picture_n">Picture %1$d</string>
+    <string name="video_layers_hint">Text and pictures appear over the video from the playhead. Pick one to change it.</string>
+    <string name="video_shows_range">Shows %1$s to %2$s</string>
+    <string name="video_start_here">Start here</string>
+    <string name="video_text_size">Size</string>
+    <string name="video_bold">Bold</string>
+    <string name="video_picture_size">Size</string>
+    <string name="video_edit_text">Edit</string>
+    <string name="video_label">Label</string>
+    <string name="video_drag_hint">Drag it on the preview to move it.</string>
 </resources>
