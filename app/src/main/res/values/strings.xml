@@ -375,4 +375,12 @@
     <string name="video_transition_all">Use on every cut</string>
     <string name="video_transition_pick">Pick a clip after the first to choose how it comes in.</string>
     <string name="video_fade_ends">Fade in at the start and out at the end</string>
+    <string name="video_mode_music">Music</string>
+    <string name="video_add_music">Add music</string>
+    <string name="video_change_music">Change</string>
+    <string name="video_music_starts">Song starts at %1$s of %2$s</string>
+    <string name="video_music_volume">Music volume</string>
+    <string name="video_clip_volume">Video sound</string>
+    <string name="video_music_fade">Fade the music in and out</string>
+    <string name="video_music_hint">Pick a song or sound saved on your phone. It loops if the video is longer. Use music you own or have the rights to, as Instagram may mute songs it recognises.</string>
 </resources>

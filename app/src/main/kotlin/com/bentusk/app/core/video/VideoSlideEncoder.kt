@@ -10,6 +10,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.FrameDropEffect
 import androidx.media3.effect.MatrixTransformation
@@ -32,6 +33,7 @@ import com.bentusk.engine.PxSize
 import com.bentusk.engine.VideoClip
 import com.bentusk.engine.VideoSlides
 import com.bentusk.engine.VideoTimeline
+import com.bentusk.engine.VideoSoundtrack
 import com.bentusk.engine.VideoTransitions
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -149,20 +151,50 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
                         MediaItem.ClippingConfiguration.Builder().setStartPositionMs(c.startMs).setEndPositionMs(c.endMs).build(),
                     )
                     .build()
+                // The clips' own sound is turned down under music by the timeline's clip volume.
+                val sound = if (timeline.clipVolume < 1.0) {
+                    listOf<AudioProcessor>(TimedGain(0) { timeline.clipVolume.toFloat() })
+                } else {
+                    emptyList()
+                }
                 EditedMediaItem.Builder(item)
-                    .setRemoveAudio(c.muted)
-                    .setEffects(Effects(emptyList(), listOf(FrameDropEffect.createDefaultFrameDropEffect(InstagramSpec.VIDEO_FPS.toFloat()), cover)))
+                    .setRemoveAudio(c.muted || timeline.clipVolume <= 0.0)
+                    .setEffects(Effects(sound, listOf(FrameDropEffect.createDefaultFrameDropEffect(InstagramSpec.VIDEO_FPS.toFloat()), cover)))
                     .build()
             }
         }
         val sequence = EditedMediaItemSequence.Builder(items).experimentalSetForceAudioTrack(true).build()
+        val sequences = listOfNotNull(sequence, musicSequence(timeline))
         // Transitions, text and pictures go on the joined video, so their times are timeline times, not clip times.
         // The picture moves first; the overlay then draws any dip to black or white, and the layers over that.
         val joined = buildList<Effect> {
             if (VideoTransitions.any(timeline)) add(TransitionMotion(timeline))
             if (overlay != null) add(OverlayEffect(ImmutableList.of<TextureOverlay>(overlay)))
         }
-        transform(sequence, output, onProgress, joined.takeIf { it.isNotEmpty() }?.let { Effects(emptyList(), it) })
+        transform(sequences, output, onProgress, joined.takeIf { it.isNotEmpty() }?.let { Effects(emptyList(), it) })
+    }
+
+    /**
+     * The timeline's music as a sound-only sequence as long as the video: the file from its start point, looping
+     * from its beginning as needed, each stretch scaled by the music's volume and fades.
+     */
+    private fun musicSequence(timeline: VideoTimeline): EditedMediaItemSequence? {
+        val music = timeline.music ?: return null
+        val pieces = VideoSoundtrack.pieces(timeline)
+        if (pieces.isEmpty()) return null
+        val items = pieces.map { p ->
+            val item = MediaItem.Builder()
+                .setUri(Uri.parse(music.uri))
+                .setClippingConfiguration(
+                    MediaItem.ClippingConfiguration.Builder().setStartPositionMs(p.fromMs).setEndPositionMs(p.toMs).build(),
+                )
+                .build()
+            EditedMediaItem.Builder(item)
+                .setRemoveVideo(true)
+                .setEffects(Effects(listOf<AudioProcessor>(TimedGain(p.atMs) { t -> VideoSoundtrack.gainAt(timeline, t).toFloat() }), emptyList()))
+                .build()
+        }
+        return EditedMediaItemSequence.Builder(items).build()
     }
 
     /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
@@ -171,8 +203,18 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
         output: File,
         onProgress: (Float) -> Unit,
         effects: Effects? = null,
+    ) {
+        transform(listOf(sequence), output, onProgress, effects)
+    }
+
+    /** Several sequences play at once: the first is the picture and its sound, the rest are mixed in under it. */
+    private suspend fun transform(
+        sequences: List<EditedMediaItemSequence>,
+        output: File,
+        onProgress: (Float) -> Unit,
+        effects: Effects? = null,
     ) = withContext(Dispatchers.Main) {
-        val composition = Composition.Builder(sequence).apply {
+        val composition = Composition.Builder(sequences).apply {
             if (effects != null) setEffects(effects)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)

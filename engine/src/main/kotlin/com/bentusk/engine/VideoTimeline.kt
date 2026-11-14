@@ -42,6 +42,10 @@ data class VideoTimeline(
     val overlays: List<VideoOverlay> = emptyList(),
     /** Fades in from black at the start and out to black at the end. */
     val fadeEnds: Boolean = false,
+    /** A song or sound from the phone played under the whole video, or null for none. */
+    val music: VideoMusic? = null,
+    /** How loud the clips' own sound plays, 0..1. */
+    val clipVolume: Double = 1.0,
 ) {
     val totalMs: Long get() = clips.sumOf { it.lengthMs }
 

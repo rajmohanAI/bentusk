@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,6 +23,7 @@ import com.bentusk.engine.TextFont
 import com.bentusk.engine.VideoOverlay
 import com.bentusk.engine.VideoOverlays
 import com.bentusk.engine.VideoShape
+import com.bentusk.engine.VideoSoundtrack
 import com.bentusk.engine.VideoTimeline
 import com.bentusk.engine.VideoTransitions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -63,8 +65,8 @@ data class VideoMakerState(
     val overlay get() = selectedOverlay?.let { id -> timeline.overlays.firstOrNull { it.id == id } }
 }
 
-/** Whether the tools below the preview edit the clips, the text and pictures on top, or the cuts between clips. */
-enum class MakerMode { Clips, Layers, Transitions }
+/** Whether the tools below the preview edit the clips, the text and pictures on top, the cuts between clips, or the music. */
+enum class MakerMode { Clips, Layers, Transitions, Music }
 
 /**
  * The video maker: clips and photos joined one after another, trimmed, split and reordered, then encoded on the
@@ -252,6 +254,38 @@ class VideoMakerViewModel @Inject constructor(
     fun setAllTransitions(transition: CutTransition) = edit { it.setAllTransitions(transition) }
 
     fun toggleFadeEnds() = edit { it.copy(fadeEnds = !it.fadeEnds) }
+
+    // Music
+
+    /** Puts a song or sound the user picked from their phone under the whole video, replacing any before. */
+    fun addMusic(uri: Uri) {
+        viewModelScope.launch {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            val duration = videos.audioDurationMs(uri)
+            if (duration == null || duration < VideoSoundtrack.MIN_MUSIC_MS) {
+                _state.update { it.copy(unreadable = it.unreadable + 1) }
+                return@launch
+            }
+            val name = withContext(Dispatchers.IO) { displayName(uri) } ?: uri.lastPathSegment.orEmpty()
+            edit { VideoSoundtrack.add(it, uri.toString(), name.substringBeforeLast('.'), duration) }
+        }
+    }
+
+    private fun displayName(uri: Uri): String? = runCatching {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst()) c.getString(0) else null
+        }
+    }.getOrNull()
+
+    fun removeMusic() = edit(VideoSoundtrack::remove)
+
+    fun setMusicStart(startMs: Long) = editLive("music-start") { VideoSoundtrack.setStart(it, startMs) }
+
+    fun setMusicVolume(volume: Double) = editLive("music-volume") { VideoSoundtrack.setVolume(it, volume) }
+
+    fun setClipVolume(volume: Double) = editLive("clip-volume") { VideoSoundtrack.setClipVolume(it, volume) }
+
+    fun toggleMusicFade() = edit { VideoSoundtrack.setFade(it, it.music?.fade != true) }
 
     // Text and pictures
 
