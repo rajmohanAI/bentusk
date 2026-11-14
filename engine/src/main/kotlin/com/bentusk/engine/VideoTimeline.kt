@@ -24,6 +24,8 @@ data class TimelineClip(
     val startMs: Long = 0,
     val endMs: Long = durationMs,
     val muted: Boolean = false,
+    /** How this piece comes in from the one before it. Ignored on the first piece. */
+    val transition: CutTransition = CutTransition.None,
 ) {
     val lengthMs: Long get() = endMs - startMs
 }
@@ -38,6 +40,8 @@ data class VideoTimeline(
     val shape: VideoShape = VideoShape.Reel,
     /** Text and pictures over the video, bottom to top. */
     val overlays: List<VideoOverlay> = emptyList(),
+    /** Fades in from black at the start and out to black at the end. */
+    val fadeEnds: Boolean = false,
 ) {
     val totalMs: Long get() = clips.sumOf { it.lengthMs }
 
@@ -90,6 +94,13 @@ data class VideoTimeline(
         }
     }
 
+    /** Sets how piece [id] comes in from the one before it. */
+    fun setTransition(id: Long, transition: CutTransition): VideoTimeline = update(id) { it.copy(transition = transition) }
+
+    /** Uses [transition] on every cut between pieces. */
+    fun setAllTransitions(transition: CutTransition): VideoTimeline =
+        copy(clips = clips.mapIndexed { i, c -> if (i == 0) c else c.copy(transition = transition) })
+
     fun setMuted(id: Long, muted: Boolean): VideoTimeline = update(id) { if (it.photo) it else it.copy(muted = muted) }
 
     /** Copies a piece and puts the copy right after it. */
@@ -109,7 +120,8 @@ data class VideoTimeline(
         if (c.photo || atMs < MIN_PIECE_MS || c.lengthMs - atMs < MIN_PIECE_MS) return this
         val cut = c.startMs + atMs
         val first = c.copy(endMs = cut)
-        val second = c.copy(id = nextId(), startMs = cut)
+        // A split is a cut inside one shot, so the second half comes straight in.
+        val second = c.copy(id = nextId(), startMs = cut, transition = CutTransition.None)
         return copy(clips = clips.toMutableList().apply { set(index, first); add(index + 1, second) })
     }
 

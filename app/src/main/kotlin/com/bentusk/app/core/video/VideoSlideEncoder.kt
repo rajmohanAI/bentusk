@@ -32,6 +32,7 @@ import com.bentusk.engine.PxSize
 import com.bentusk.engine.VideoClip
 import com.bentusk.engine.VideoSlides
 import com.bentusk.engine.VideoTimeline
+import com.bentusk.engine.VideoTransitions
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -117,7 +118,8 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
 
     /**
      * Encodes a video maker timeline: its clips and photos one after another, each scaled to cover a frame of
-     * [VideoTimeline.shape]'s size, under [overlay]. Photos and muted clips play silence, so the sound stays in step
+     * [VideoTimeline.shape]'s size, with its transitions, under [overlay] (which must be there when the timeline has
+     * text, pictures or a transition that dips, as it draws the dips too). Photos and muted clips play silence, so the sound stays in step
      * with the picture.
      */
     suspend fun encodeTimeline(
@@ -154,9 +156,13 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
             }
         }
         val sequence = EditedMediaItemSequence.Builder(items).experimentalSetForceAudioTrack(true).build()
-        // Text and pictures go on the joined video, so their times are timeline times rather than clip times.
-        val effects = overlay?.let { Effects(emptyList(), listOf<Effect>(OverlayEffect(ImmutableList.of<TextureOverlay>(it)))) }
-        transform(sequence, output, onProgress, effects)
+        // Transitions, text and pictures go on the joined video, so their times are timeline times, not clip times.
+        // The picture moves first; the overlay then draws any dip to black or white, and the layers over that.
+        val joined = buildList<Effect> {
+            if (VideoTransitions.any(timeline)) add(TransitionMotion(timeline))
+            if (overlay != null) add(OverlayEffect(ImmutableList.of<TextureOverlay>(overlay)))
+        }
+        transform(sequence, output, onProgress, joined.takeIf { it.isNotEmpty() }?.let { Effects(emptyList(), it) })
     }
 
     /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
@@ -219,4 +225,24 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
     private companion object {
         const val PROGRESS_POLL_MS = 250L
     }
+}
+
+/**
+ * The zoom and swipe of a timeline's transitions, as a matrix on the joined video. Never a no-op, even when the
+ * first frame is still, so it is not dropped from the chain.
+ */
+@OptIn(UnstableApi::class)
+private class TransitionMotion(private val timeline: VideoTimeline) : MatrixTransformation {
+    private val cuts = VideoTransitions.cuts(timeline)
+    private val matrix = Matrix()
+
+    override fun getMatrix(presentationTimeUs: Long): Matrix {
+        val f = VideoTransitions.frame(timeline, cuts, presentationTimeUs / 1000)
+        // In normalised device coordinates the frame runs from -1 to 1, so a shift of the whole width is 2.
+        matrix.setScale(f.scale.toFloat(), f.scale.toFloat())
+        matrix.postTranslate((f.shift * 2).toFloat(), 0f)
+        return matrix
+    }
+
+    override fun isNoOp(inputWidth: Int, inputHeight: Int): Boolean = false
 }
