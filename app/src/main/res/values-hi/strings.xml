@@ -374,4 +374,12 @@
     <string name="video_transition_all">हर कट पर लगाएँ</string>
     <string name="video_transition_pick">पहली के बाद की कोई क्लिप चुनें, फिर तय करें कि वह कैसे आए।</string>
     <string name="video_fade_ends">शुरू में फ़ेड इन और आख़िर में फ़ेड आउट</string>
+    <string name="video_mode_music">संगीत</string>
+    <string name="video_add_music">संगीत जोड़ें</string>
+    <string name="video_change_music">बदलें</string>
+    <string name="video_music_starts">गाना %2$s में से %1$s से शुरू</string>
+    <string name="video_music_volume">संगीत की आवाज़</string>
+    <string name="video_clip_volume">वीडियो की आवाज़</string>
+    <string name="video_music_fade">संगीत को धीरे से शुरू और ख़त्म करें</string>
+    <string name="video_music_hint">अपने फ़ोन में सेव कोई गाना या आवाज़ चुनें। वीडियो लंबा हो तो यह दोबारा चलेगा। वही संगीत लें जो आपका हो या जिसके अधिकार आपके पास हों, क्योंकि Instagram पहचाने गए गानों को म्यूट कर सकता है।</string>
 </resources>
