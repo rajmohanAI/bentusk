@@ -31,6 +31,7 @@ import com.bentusk.engine.InstagramSpec
 import com.bentusk.engine.PxSize
 import com.bentusk.engine.VideoClip
 import com.bentusk.engine.VideoSlides
+import com.bentusk.engine.VideoTimeline
 import com.google.common.collect.ImmutableList
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +87,7 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
             .setRemoveAudio(clip.muted)
             .setEffects(Effects(emptyList(), effects))
             .build()
-        transform(edited, output, onProgress)
+        transform(EditedMediaItemSequence(edited), output, onProgress)
     }
 
     /** Encodes the picture in [image] (exactly [slide] in size) held for [durationMs], under [overlay]. */
@@ -111,12 +112,48 @@ class VideoSlideEncoder @Inject constructor(@ApplicationContext private val cont
             .setFrameRate(InstagramSpec.VIDEO_FPS)
             .setEffects(Effects(emptyList(), effects))
             .build()
-        transform(edited, output, onProgress)
+        transform(EditedMediaItemSequence(edited), output, onProgress)
+    }
+
+    /**
+     * Encodes a video maker timeline: its clips and photos one after another, each scaled to cover a frame of
+     * [VideoTimeline.shape]'s size. Photos and muted clips play silence, so the sound stays in step with the picture.
+     */
+    suspend fun encodeTimeline(timeline: VideoTimeline, output: File, onProgress: (Float) -> Unit = {}) {
+        val size = timeline.shape.size
+        val cover = Presentation.createForWidthAndHeight(size.width, size.height, Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP)
+        val items = timeline.clips.map { c ->
+            val uri = Uri.parse(c.uri)
+            if (c.photo) {
+                val item = MediaItem.Builder()
+                    .setUri(uri)
+                    .setMimeType(context.contentResolver.getType(uri)?.takeIf { it.startsWith("image/") } ?: MimeTypes.IMAGE_JPEG)
+                    .setImageDurationMs(c.lengthMs)
+                    .build()
+                EditedMediaItem.Builder(item)
+                    .setFrameRate(InstagramSpec.VIDEO_FPS)
+                    .setEffects(Effects(emptyList(), listOf<Effect>(cover)))
+                    .build()
+            } else {
+                val item = MediaItem.Builder()
+                    .setUri(uri)
+                    .setClippingConfiguration(
+                        MediaItem.ClippingConfiguration.Builder().setStartPositionMs(c.startMs).setEndPositionMs(c.endMs).build(),
+                    )
+                    .build()
+                EditedMediaItem.Builder(item)
+                    .setRemoveAudio(c.muted)
+                    .setEffects(Effects(emptyList(), listOf(FrameDropEffect.createDefaultFrameDropEffect(InstagramSpec.VIDEO_FPS.toFloat()), cover)))
+                    .build()
+            }
+        }
+        val sequence = EditedMediaItemSequence.Builder(items).experimentalSetForceAudioTrack(true).build()
+        transform(sequence, output, onProgress)
     }
 
     /** Transformer must be driven from a thread with a Looper, so the work runs on the main thread. */
-    private suspend fun transform(edited: EditedMediaItem, output: File, onProgress: (Float) -> Unit) = withContext(Dispatchers.Main) {
-        val composition = Composition.Builder(EditedMediaItemSequence(edited)).apply {
+    private suspend fun transform(sequence: EditedMediaItemSequence, output: File, onProgress: (Float) -> Unit) = withContext(Dispatchers.Main) {
+        val composition = Composition.Builder(sequence).apply {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL)
             }

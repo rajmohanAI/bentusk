@@ -25,6 +25,7 @@ Seamless carousels, grid puzzles, a profile grid planner and highlight covers fo
 | Photos fill slides | In a blank carousel or grid each picked photo gets a slide or tile of its own (adding slides or rows as needed), framed to fill it; pinch or use the Zoom slider to crop, and "Across slides" stretches one wide photo over every slide for a seamless panorama |
 | Retro film looks | Tap a photo, then Retro: nine film looks (70s, slide film, instant, 90s disposable, sepia, black & white, faded, cross process, home movie) with a strength slider and an optional orange date stamp; grain, vignette and light leaks are drawn on the phone, nothing is uploaded or generated |
 | Studio shot | Tap a photo, then Studio shot: ML Kit subject segmentation cuts out the product or person on the phone and places it on one of nine seamless backdrops with a soft key light and contact shadow; the result replaces the photo and undo brings the original back. Lighting and camera angle stay as shot (full relighting needs cloud AI) |
+| Video maker | Create → Video maker: join video clips and photos into one Reel (9:16), post (4:5) or square video; trim each clip, set how long each photo shows, split at the playhead, reorder, duplicate, mute and undo, with a live preview; encoded on the phone at 1080p 30 fps and saved to the gallery |
 
 ## Plans
 

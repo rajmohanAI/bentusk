@@ -21,6 +21,7 @@ import com.bentusk.app.feature.home.HomeScreen
 import com.bentusk.app.feature.planner.PlannerScreen
 import com.bentusk.app.feature.pro.ProScreen
 import com.bentusk.app.feature.studio.StudioScreen
+import com.bentusk.app.feature.video.VideoMakerScreen
 
 private const val DURATION = 320
 
@@ -54,6 +55,7 @@ fun BentuskNavHost(sharedPhoto: Uri?, onSharedPhotoHandled: () -> Unit) {
                 onOpenEditor = { mode, uri -> nav.navigate(EditorRoute(mode.name, uri.toString())) },
                 onOpenPlanner = { nav.navigate(PlannerRoute) },
                 onOpenCovers = { nav.navigate(CoversRoute) },
+                onOpenVideoMaker = { nav.navigate(VideoMakerRoute) },
                 onOpenPro = upgrade,
                 onOpenStudio = { nav.navigate(it) },
             )
@@ -76,6 +78,9 @@ fun BentuskNavHost(sharedPhoto: Uri?, onSharedPhotoHandled: () -> Unit) {
         }
         composable<CoversRoute> {
             CoversScreen(onBack = back, onExport = { nav.navigate(ExportRoute) }, onUpgrade = upgrade)
+        }
+        composable<VideoMakerRoute> {
+            VideoMakerScreen(onBack = back)
         }
         composable<ProRoute>(
             enterTransition = { slideInVertically(tween(DURATION)) { it } },

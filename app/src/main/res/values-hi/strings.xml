@@ -328,4 +328,26 @@
     <string name="backdrop_sunset">सूर्यास्त</string>
     <string name="backdrop_charcoal">चारकोल</string>
     <string name="backdrop_midnight">मिडनाइट</string>
+    <string name="video_maker">वीडियो मेकर</string>
+    <string name="video_maker_body">क्लिप और फ़ोटो जोड़कर एक रील या वीडियो पोस्ट बनाएँ, ट्रिम करके और क्रम में</string>
+    <string name="video_shape_reel">रील</string>
+    <string name="video_shape_portrait">पोस्ट</string>
+    <string name="video_shape_square">स्क्वेयर</string>
+    <string name="video_empty">क्लिप और फ़ोटो जोड़ें। वे उसी क्रम में एक के बाद एक चलेंगी जिसमें आप उन्हें चुनते हैं।</string>
+    <string name="video_add">क्लिप और फ़ोटो जोड़ें</string>
+    <string name="video_play">चलाएँ</string>
+    <string name="video_pause">रोकें</string>
+    <string name="video_too_long">%1$d मिनट से ज़्यादा, रील के लिए बहुत लंबा</string>
+    <string name="video_photo_time">स्क्रीन पर %1$s</string>
+    <string name="video_trim_range">%3$s में से %1$s से %2$s तक चलेगा</string>
+    <string name="video_split">यहाँ काटें</string>
+    <string name="video_move_earlier">पहले</string>
+    <string name="video_move_later">बाद में</string>
+    <string name="video_duplicate">कॉपी करें</string>
+    <string name="video_exporting">आपका वीडियो बन रहा है</string>
+    <string name="video_exporting_body">यह आपके फ़ोन पर ही चलता है और लंबे वीडियो में एक मिनट लग सकता है। ऐप खुला रखें।</string>
+    <string name="video_cancel">रद्द करें</string>
+    <string name="video_saved">आपकी गैलरी में सेव हो गया</string>
+    <string name="video_saved_body">आपका वीडियो गैलरी में है, रील या वीडियो पोस्ट के रूप में पोस्ट करने के लिए तैयार।</string>
+    <string name="video_export_failed">वीडियो नहीं बन सका। छोटी क्लिप या दूसरी फ़ाइल आज़माएँ।</string>
 </resources>

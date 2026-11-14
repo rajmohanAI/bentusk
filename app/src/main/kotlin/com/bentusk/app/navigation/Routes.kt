@@ -15,6 +15,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data object ProRoute
 
+@Serializable data object VideoMakerRoute
+
 /**
  * The design editor. It opens a saved [projectId], or a new design from [templateId], or a blank [kind]
  * ([com.bentusk.engine.TemplateKind] name). [photos] are content URIs joined by newlines that fill it first.
