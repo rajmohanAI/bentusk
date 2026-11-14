@@ -209,9 +209,11 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
             frameMs = (c?.let { t.startOf(it.id) } ?: 0L) + player.currentPosition.coerceAtMost(c?.lengthMs ?: 0L)
         }
     }
-    val motion = remember(state.timeline) {
-        val cuts = VideoTransitions.cuts(state.timeline)
-        { ms: Long -> if (animated) VideoTransitions.frame(state.timeline, cuts, ms) else TransitionFrame.Still }
+    val motion: (Long) -> TransitionFrame = remember(state.timeline) {
+        val timeline = state.timeline
+        val cuts = VideoTransitions.cuts(timeline)
+        val f: (Long) -> TransitionFrame = { ms -> if (animated) VideoTransitions.frame(timeline, cuts, ms) else TransitionFrame.Still }
+        f
     }
 
     Scaffold(
