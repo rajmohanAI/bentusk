@@ -40,6 +40,19 @@ class VideoProbe @Inject constructor(@ApplicationContext private val context: Co
         }
     }
 
+    /** The length of a song or other sound file, or null when it cannot be read. */
+    suspend fun audioDurationMs(uri: Uri): Long? = withContext(Dispatchers.IO) {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(context, uri)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?.takeIf { it > 0 }
+        } catch (e: RuntimeException) {
+            null
+        } finally {
+            retriever.release()
+        }
+    }
+
     /** Decodes straight to a small frame where the platform can, instead of a full 4K bitmap. */
     private fun scaledFrame(retriever: MediaMetadataRetriever, timeUs: Long, maxSide: Int): Bitmap? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) return null

@@ -36,6 +36,10 @@ import com.bentusk.engine.VideoOverlays
 import com.bentusk.engine.CutTransition
 import com.bentusk.engine.TransitionFrame
 import com.bentusk.engine.VideoTransitions
+import com.bentusk.engine.VideoMusic
+import com.bentusk.engine.VideoSoundtrack
+import androidx.compose.material.icons.rounded.MusicNote
+import kotlin.math.abs
 import android.view.LayoutInflater
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material3.Switch
@@ -151,6 +155,9 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
     val pickPicture = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.addImage(it, elapsedForPick) }
     }
+    val pickMusic = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::addMusic)
+    }
     var writing by remember { mutableStateOf<TextEdit?>(null) }
     val failedMessage = stringResource(R.string.video_export_failed)
     val unreadableMessage = pluralStringResource(R.plurals.import_failed, state.unreadable, state.unreadable)
@@ -191,6 +198,38 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
             position = player.currentPosition
             playing = player.isPlaying
             delay(TICK_MS)
+        }
+    }
+
+    // The music plays on a second player kept in step with the first: started, stopped and moved with it.
+    val musicPlayer = remember { ExoPlayer.Builder(context).build() }
+    DisposableEffect(musicPlayer) { onDispose { musicPlayer.release() } }
+    val music = state.timeline.music
+    LaunchedEffect(music?.uri) {
+        musicPlayer.stop()
+        if (music != null) {
+            musicPlayer.setMediaItem(MediaItem.fromUri(music.uri))
+            musicPlayer.prepare()
+        } else {
+            musicPlayer.clearMediaItems()
+        }
+    }
+    val soundNow by rememberUpdatedState(state.timeline)
+    LaunchedEffect(player, musicPlayer) {
+        while (true) {
+            val t = soundNow
+            player.volume = t.clipVolume.toFloat()
+            val c = t.clips.getOrNull(player.currentMediaItemIndex)
+            val at = (c?.let { t.startOf(it.id) } ?: 0L) + player.currentPosition.coerceAtMost(c?.lengthMs ?: 0L)
+            val want = if (t.music != null && player.isPlaying) VideoSoundtrack.songPosition(t, at) else null
+            if (want == null) {
+                if (musicPlayer.isPlaying) musicPlayer.pause()
+            } else {
+                musicPlayer.volume = VideoSoundtrack.gainAt(t, at).toFloat()
+                if (abs(musicPlayer.currentPosition - want) > MUSIC_DRIFT_MS) musicPlayer.seekTo(want)
+                if (!musicPlayer.isPlaying) musicPlayer.play()
+            }
+            delay(MUSIC_TICK_MS)
         }
     }
     val current = clips.getOrNull(index)
@@ -330,6 +369,11 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                         onClick = { viewModel.setMode(MakerMode.Transitions) },
                         label = { Text(stringResource(R.string.video_mode_transitions)) },
                     )
+                    FilterChip(
+                        selected = state.mode == MakerMode.Music,
+                        onClick = { viewModel.setMode(MakerMode.Music) },
+                        label = { Text(stringResource(R.string.video_mode_music)) },
+                    )
                 }
                 Column(Modifier.heightIn(max = TOOLS_MAX_HEIGHT).verticalScroll(rememberScrollState())) {
                     when (state.mode) {
@@ -361,6 +405,11 @@ fun VideoMakerScreen(onBack: () -> Unit, viewModel: VideoMakerViewModel = hiltVi
                                 onFadeEnds = viewModel::toggleFadeEnds,
                             )
                         }
+                        MakerMode.Music -> MusicTools(
+                            timeline = state.timeline,
+                            onPick = { pickMusic.launch(arrayOf("audio/*")) },
+                            viewModel = viewModel,
+                        )
                         MakerMode.Layers -> LayerTools(
                             state = state,
                             elapsed = elapsed,
@@ -673,6 +722,62 @@ private fun TransitionTools(
     }
 }
 
+/** The song under the video: where in it to start, how loud it and the clips' own sound play, and fades. */
+@Composable
+private fun MusicTools(timeline: VideoTimeline, onPick: () -> Unit, viewModel: VideoMakerViewModel) {
+    val m: VideoMusic? = timeline.music
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        if (m == null) {
+            AssistChip(onClick = onPick, label = { Text(stringResource(R.string.video_add_music)) }, leadingIcon = {
+                Icon(Icons.Rounded.MusicNote, null)
+            })
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.MusicNote, null, tint = BentuskColors.Gold)
+                Text(
+                    m.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                )
+                TextButton(onClick = onPick) { Text(stringResource(R.string.video_change_music)) }
+                TextButton(onClick = viewModel::removeMusic) { Text(stringResource(R.string.remove)) }
+            }
+            Text(stringResource(R.string.video_music_starts, clock(m.startMs), clock(m.durationMs)), style = MaterialTheme.typography.labelLarge)
+            Slider(
+                value = m.startMs.toFloat(),
+                onValueChange = { viewModel.setMusicStart(it.toLong()) },
+                onValueChangeFinished = viewModel::endLive,
+                valueRange = 0f..(m.durationMs - VideoSoundtrack.MIN_MUSIC_MS).coerceAtLeast(1).toFloat(),
+            )
+            Text(stringResource(R.string.video_music_volume), style = MaterialTheme.typography.labelLarge)
+            Slider(
+                value = m.volume.toFloat(),
+                onValueChange = { viewModel.setMusicVolume(it.toDouble()) },
+                onValueChangeFinished = viewModel::endLive,
+            )
+        }
+        Text(stringResource(R.string.video_clip_volume), style = MaterialTheme.typography.labelLarge)
+        Slider(
+            value = timeline.clipVolume.toFloat(),
+            onValueChange = { viewModel.setClipVolume(it.toDouble()) },
+            onValueChangeFinished = viewModel::endLive,
+        )
+        if (m != null) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.video_music_fade), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Switch(checked = m.fade, onCheckedChange = { viewModel.toggleMusicFade() })
+            }
+        }
+        Text(
+            stringResource(R.string.video_music_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
 /** 0:05, 1:02 */
 private fun clock(ms: Long): String {
     val s = ms / 1000
@@ -878,3 +983,5 @@ private const val VIDEO_MIME = "video/mp4"
 private const val PLAYLIST_DEBOUNCE_MS = 250L
 private const val TICK_MS = 200L
 private const val CUT_LEAD_MS = 1_000L
+private const val MUSIC_TICK_MS = 100L
+private const val MUSIC_DRIFT_MS = 300L
